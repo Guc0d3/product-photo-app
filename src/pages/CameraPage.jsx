@@ -1,0 +1,162 @@
+import { useState, useRef, useEffect } from 'react'
+import { useLang } from '../contexts/LangContext.jsx'
+
+export default function CameraPage({ queue, onBack, onPhotoTaken }) {
+  const { t } = useLang()
+  const [phase, setPhase] = useState('viewfinder') // viewfinder | preview
+  const [capturedColor, setCapturedColor] = useState(null)
+  const [flash, setFlash] = useState(false)
+  const [facingMode, setFacingMode] = useState('environment')
+
+  const COLORS = ['#FFD6D6','#D6E4FF','#D6FFD6','#FFE8D6','#F0D6FF','#D6FFF5','#FFFAD6','#FFD6E8']
+
+  const handleCapture = () => {
+    // Flash animation
+    setFlash(true)
+    setTimeout(() => setFlash(false), 150)
+
+    // Mock captured photo
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)]
+    setCapturedColor(color)
+    setPhase('preview')
+  }
+
+  const handleRetake = () => {
+    setCapturedColor(null)
+    setPhase('viewfinder')
+  }
+
+  const handleConfirm = () => {
+    onPhotoTaken({ color: capturedColor })
+  }
+
+  return (
+    <div className="flex-1 flex flex-col bg-black overflow-hidden relative">
+      {/* Flash overlay */}
+      {flash && <div className="absolute inset-0 bg-white z-50 pointer-events-none"/>}
+
+      {phase === 'viewfinder' && (
+        <>
+          {/* Mock viewfinder */}
+          <div className="flex-1 relative">
+            {/* Simulated camera feed */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900">
+              {/* Grid overlay */}
+              <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="border border-white/10"/>
+                ))}
+              </div>
+
+              {/* Center focus indicator */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 relative">
+                  <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-white/80"/>
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-white/80"/>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-white/80"/>
+                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-white/80"/>
+                </div>
+              </div>
+
+              {/* Simulated products */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                <svg width="120" height="120" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="0.5">
+                  <path strokeLinecap="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* Top controls */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
+              <button onClick={onBack} className="active:scale-90">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+                  <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+
+              <div className="text-center">
+                <p className="text-white text-xs font-medium opacity-90">{queue?.code}</p>
+              </div>
+
+              <button
+                onClick={() => setFacingMode(f => f === 'environment' ? 'user' : 'environment')}
+                className="active:scale-90"
+              >
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom controls */}
+          <div className="bg-black px-6 py-8 flex items-center justify-between">
+            {/* Last photo thumbnail */}
+            <div className="w-12 h-12 rounded-xl bg-gray-700 flex items-center justify-center">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth="1.5">
+                <path strokeLinecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+
+            {/* Shutter button */}
+            <button
+              onClick={handleCapture}
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <div className="w-14 h-14 bg-white rounded-full"/>
+            </button>
+
+            {/* Placeholder */}
+            <div className="w-12 h-12"/>
+          </div>
+        </>
+      )}
+
+      {phase === 'preview' && (
+        <>
+          {/* Preview */}
+          <div className="flex-1 relative" style={{ background: capturedColor }}>
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <svg width="100" height="100" fill="none" viewBox="0 0 24 24" stroke="black" strokeWidth="0.5">
+                <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </div>
+
+            {/* Top bar */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/40 to-transparent">
+              <button onClick={handleRetake} className="active:scale-90">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+                  <path strokeLinecap="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <span className="text-white text-sm font-medium">{t.reviewPhoto}</span>
+              <div className="w-6"/>
+            </div>
+          </div>
+
+          {/* Preview actions */}
+          <div className="bg-black px-6 py-6">
+            <p className="text-white/60 text-xs text-center mb-4">
+              {t.cameraHint}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRetake}
+                className="flex-1 border border-white/30 text-white rounded-xl py-3 text-sm font-medium active:bg-white/10"
+              >
+                {t.retake}
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-transform"
+              >
+                {t.usePhoto}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
