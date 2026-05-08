@@ -88,6 +88,8 @@ export const translations = {
     uploading: 'กำลังอัปโหลด...',
     cameraHint: 'คุณสามารถเลือกชนิดสินค้าได้ทีหลังในหน้าใบรับสินค้า',
     cameraPermissionDenied: 'ไม่ได้รับอนุญาตใช้กล้อง กรุณาอนุญาตในการตั้งค่าเบราว์เซอร์',
+    cameraNotFound: 'ไม่พบกล้อง กรุณาตรวจสอบว่าเบราว์เซอร์ได้รับสิทธิ์เข้าถึงกล้องใน System Preferences',
+    cameraNotSupported: 'เบราว์เซอร์นี้ไม่รองรับการใช้กล้อง',
     cameraError: 'ไม่สามารถเปิดกล้องได้ กรุณาลองใหม่',
 
     // Relative time
@@ -197,6 +199,8 @@ export const translations = {
     uploading: 'Uploading...',
     cameraHint: 'You can set the product type later in the receipt view',
     cameraPermissionDenied: 'Camera access denied. Please allow it in browser settings.',
+    cameraNotFound: 'No camera found. Please allow camera access in System Preferences.',
+    cameraNotSupported: 'This browser does not support camera access.',
     cameraError: 'Could not open camera. Please try again.',
 
     // Relative time

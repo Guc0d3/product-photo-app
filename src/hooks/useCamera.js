@@ -20,26 +20,37 @@ export function useCamera(facingMode = 'environment') {
     let cancelled = false
 
     const start = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode,
-            width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        })
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('cameraNotSupported')
+        return
+      }
+
+      // Try ideal constraints first; fall back to bare `video: true`
+      const constraints = [
+        { video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+        { video: true, audio: false },
+      ]
+
+      let lastErr = null
+      for (const c of constraints) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(c)
+          if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+          streamRef.current = stream
+          if (videoRef.current) videoRef.current.srcObject = stream
+          setError(null)
+          return          // success — stop trying
+        } catch (err) {
+          lastErr = err
         }
-        setError(null)
-      } catch (err) {
-        if (!cancelled) {
-          console.error('getUserMedia:', err)
-          setError(err.name === 'NotAllowedError' ? 'cameraPermissionDenied' : 'cameraError')
-        }
+      }
+
+      // All attempts failed
+      if (!cancelled) {
+        console.error('getUserMedia:', lastErr)
+        if (lastErr.name === 'NotAllowedError')  setError('cameraPermissionDenied')
+        else if (lastErr.name === 'NotFoundError') setError('cameraNotFound')
+        else setError('cameraError')
       }
     }
 

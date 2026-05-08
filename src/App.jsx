@@ -19,7 +19,7 @@ function useIsDesktop() {
 
 function LoadingScreen() {
   return (
-    <div className="h-screen flex items-center justify-center bg-white">
+    <div className="h-[100dvh] flex items-center justify-center bg-white">
       <div className="w-16 h-16 bg-[#06C755]/10 rounded-2xl flex items-center justify-center">
         <svg className="animate-spin w-8 h-8 text-[#06C755]" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
@@ -64,8 +64,8 @@ export default function App() {
   // ── Not logged in ──────────────────────────────────────────────────────────
   if (!user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F5F7FA]">
-        <div className="w-full md:max-w-md h-screen md:h-auto md:rounded-2xl md:shadow-xl overflow-hidden flex flex-col">
+      <div className="h-[100dvh] flex items-center justify-center bg-[#F5F7FA]">
+        <div className="w-full md:max-w-md h-[100dvh] md:h-auto md:rounded-2xl md:shadow-xl overflow-hidden flex flex-col">
           <LoginPage />
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function App() {
   // ── Mobile ─────────────────────────────────────────────────────────────────
   if (!isDesktop) {
     return (
-      <div className="h-screen flex flex-col overflow-hidden relative">
+      <div className="h-[100dvh] flex flex-col overflow-hidden relative">
         {mobileScreen === 'queueList' && (
           <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
         )}
@@ -113,7 +113,7 @@ export default function App() {
 
   // ── Desktop two-panel ──────────────────────────────────────────────────────
   return (
-    <div className="h-screen flex overflow-hidden bg-[#F5F7FA] relative">
+    <div className="h-[100dvh] flex overflow-hidden bg-[#F5F7FA] relative">
       <div className="w-80 xl:w-96 flex-shrink-0 flex flex-col border-r border-gray-200 overflow-hidden bg-white">
         <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
       </div>

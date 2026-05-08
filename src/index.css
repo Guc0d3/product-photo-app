@@ -10,14 +10,28 @@ body {
   margin: 0;
   font-family: 'Prompt', sans-serif;
   background: #f0f0f0;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 #root {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+/* Safe-area utility — ใช้กับ bottom controls ให้หลบ home indicator / browser nav */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe-4 {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+.pb-safe-6 {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+.pb-safe-8 {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
 
 .chat-bubble-enter {

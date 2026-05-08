@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
 import { useCamera } from '../hooks/useCamera.js'
 import { uploadMedia } from '../services/storageService.js'
@@ -7,12 +7,14 @@ import { addMedia } from '../services/mediaService.js'
 export default function CameraPage({ queue, onBack, onPhotoTaken }) {
   const { t } = useLang()
 
-  const [phase,       setPhase]       = useState('viewfinder') // 'viewfinder' | 'preview'
+  const [phase,        setPhase]        = useState('viewfinder') // 'viewfinder' | 'preview'
   const [capturedFile, setCapturedFile] = useState(null)
-  const [previewUrl,  setPreviewUrl]  = useState(null)
-  const [flash,       setFlash]       = useState(false)
-  const [facingMode,  setFacingMode]  = useState('environment')
-  const [uploading,   setUploading]   = useState(false)
+  const [previewUrl,   setPreviewUrl]   = useState(null)
+  const [flash,        setFlash]        = useState(false)
+  const [facingMode,   setFacingMode]   = useState('environment')
+  const [uploading,    setUploading]    = useState(false)
+
+  const fileInputRef = useRef(null)
 
   const { videoRef, error, ready, handleVideoReady, capture } = useCamera(facingMode)
 
@@ -39,12 +41,25 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
     setPhase('viewfinder')
   }
 
+  // ── pick from library ──────────────────────────────────────────────────────
+  const handlePickFile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setCapturedFile(file)
+    setPreviewUrl(url)
+    setPhase('preview')
+    // reset so same file can be picked again
+    e.target.value = ''
+  }
+
   const handleConfirm = async () => {
     if (!capturedFile || !queue?.id || uploading) return
     setUploading(true)
     try {
+      const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
       const { url, storagePath } = await uploadMedia(queue.id, capturedFile)
-      await addMedia(queue.id, { url, storagePath, type: 'image' })
+      await addMedia(queue.id, { url, storagePath, type: mediaType })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch (err) {
@@ -137,7 +152,22 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
           </div>
 
           {/* Shutter row */}
-          <div className="bg-black px-6 py-8 flex items-center justify-center">
+          <div className="bg-black px-6 pt-8 pb-safe-8 flex items-center justify-between">
+
+            {/* Gallery / pick from library */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors"
+              aria-label="เลือกรูปจากคลัง"
+            >
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.6">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="white" stroke="none"/>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21"/>
+              </svg>
+            </button>
+
+            {/* Shutter */}
             <button
               onClick={handleCapture}
               disabled={!ready || !!error}
@@ -145,7 +175,20 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
             >
               <div className="w-14 h-14 bg-white rounded-full"/>
             </button>
+
+            {/* Spacer — same width as gallery button */}
+            <div className="w-14 h-14"/>
+
           </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={handlePickFile}
+          />
         </>
       )}
 
@@ -153,11 +196,20 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
       {phase === 'preview' && (
         <>
           <div className="flex-1 relative bg-black">
-            <img
-              src={previewUrl}
-              alt="captured"
-              className="absolute inset-0 w-full h-full object-contain"
-            />
+            {capturedFile?.type?.startsWith('video') ? (
+              <video
+                src={previewUrl}
+                controls
+                playsInline
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt="captured"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            )}
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/40 to-transparent">
               <button onClick={handleRetake} disabled={uploading} className="active:scale-90">
@@ -171,7 +223,7 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
           </div>
 
           {/* Action row */}
-          <div className="bg-black px-6 py-6">
+          <div className="bg-black px-6 pt-6 pb-safe-6">
             <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
             <div className="flex gap-3">
               <button

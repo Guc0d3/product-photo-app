@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
 import { useQueueDetail } from '../hooks/useQueueDetail.js'
-
-// ── constants (Phase 5 will fetch from Firestore `products` collection) ───────
-const PRODUCT_TYPES = [
-  'เครื่องดื่ม', 'อาหารแห้ง', 'ขนม', 'ผลิตภัณฑ์ทำความสะอาด',
-  'สินค้าอุปโภค', 'เครื่องสำอาง', 'ยาและอาหารเสริม', 'เครื่องใช้ไฟฟ้า',
-  'เสื้อผ้า', 'เครื่องเขียน', 'ของเล่น', 'สินค้าเกษตร',
-]
+import { useProducts } from '../hooks/useProducts.js'
+import { seedProducts } from '../services/productService.js'
 
 const VIDEO_EXPIRY_DAYS = 15
 
@@ -32,15 +27,22 @@ function daysUntilExpiry(takenAt) {
 }
 
 // ── Product Type Modal ────────────────────────────────────────────────────────
-function ProductTypeModal({ photo, onClose, onSave }) {
+function ProductTypeModal({ photo, productTypes, isAdmin, onClose, onSave }) {
   const { t } = useLang()
   const [selected, setSelected] = useState(photo.productType || '')
   const [search,   setSearch]   = useState('')
   const [saving,   setSaving]   = useState(false)
+  const [seeding,  setSeeding]  = useState(false)
 
-  const filtered = PRODUCT_TYPES.filter(pt =>
+  const filtered = productTypes.filter(pt =>
     pt.toLowerCase().includes(search.toLowerCase())
   )
+
+  const handleSeed = async () => {
+    setSeeding(true)
+    try { await seedProducts() } catch (e) { console.error('seed:', e) }
+    setSeeding(false)
+  }
 
   const handleSave = async () => {
     if (!selected) return
@@ -109,7 +111,29 @@ function ProductTypeModal({ photo, onClose, onSave }) {
               )}
             </button>
           ))}
-          {filtered.length === 0 && (
+          {filtered.length === 0 && search === '' && productTypes.length === 0 && isAdmin && (
+            /* First-run: no products seeded yet — show one-click seed button */
+            <div className="flex flex-col items-center py-10 gap-3">
+              <p className="text-sm text-gray-400 text-center">{t.noProductTypes ?? 'ยังไม่มีชนิดสินค้า'}</p>
+              <button
+                onClick={handleSeed}
+                disabled={seeding}
+                className="flex items-center gap-2 bg-[#06C755] text-white text-sm font-semibold px-4 py-2.5 rounded-2xl shadow-lg shadow-green-200 active:scale-95 transition-all disabled:opacity-60"
+              >
+                {seeding ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                    </svg>
+                    {t.seeding ?? 'กำลังเพิ่มข้อมูล...'}
+                  </>
+                ) : (
+                  <>{t.seedProducts ?? 'เพิ่มชนิดสินค้าเริ่มต้น'}</>
+                )}
+              </button>
+            </div>
+          )}
+          {filtered.length === 0 && (search !== '' || productTypes.length > 0) && (
             <p className="text-center text-gray-400 text-sm py-8">{t.noProductTypeFound}</p>
           )}
         </div>
@@ -421,6 +445,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [groupBy,          setGroupBy]          = useState(false)
 
   const { media, loading, handleTag, handleDelete, handleClose } = useQueueDetail(queue)
+  const { products } = useProducts()
 
   const isAdmin     = user?.role === 'admin'
   const canEditItem = (item) => isAdmin || isToday(item.takenAt)
@@ -638,6 +663,8 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
       {taggingPhoto && (
         <ProductTypeModal
           photo={taggingPhoto}
+          productTypes={products}
+          isAdmin={isAdmin}
           onClose={() => setTaggingPhoto(null)}
           onSave={handleSaveTag}
         />
