@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
+import { useQueueDetail } from '../hooks/useQueueDetail.js'
 
+// ── constants (Phase 5 will fetch from Firestore `products` collection) ───────
 const PRODUCT_TYPES = [
   'เครื่องดื่ม', 'อาหารแห้ง', 'ขนม', 'ผลิตภัณฑ์ทำความสะอาด',
   'สินค้าอุปโภค', 'เครื่องสำอาง', 'ยาและอาหารเสริม', 'เครื่องใช้ไฟฟ้า',
@@ -9,39 +11,43 @@ const PRODUCT_TYPES = [
 
 const VIDEO_EXPIRY_DAYS = 15
 
-const today = new Date()
-today.setHours(0, 0, 0, 0)
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function formatTime(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 function isToday(date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d.getTime() === today.getTime()
+  if (!date) return false
+  const a = new Date(date); a.setHours(0, 0, 0, 0)
+  const b = new Date();     b.setHours(0, 0, 0, 0)
+  return a.getTime() === b.getTime()
 }
 
 function daysUntilExpiry(takenAt) {
-  const taken = new Date(takenAt)
-  const expiry = new Date(taken.getTime() + VIDEO_EXPIRY_DAYS * 86400000)
-  const now = new Date()
-  return Math.ceil((expiry - now) / 86400000)
+  const expiry = new Date(takenAt).getTime() + VIDEO_EXPIRY_DAYS * 86400000
+  return Math.ceil((expiry - Date.now()) / 86400000)
 }
 
-const MOCK_PHOTOS = [
-  { id: 'p1', type: 'image', color: '#FFD6D6', takenAt: new Date(), takenAtStr: '09:15', productType: 'เครื่องดื่ม' },
-  { id: 'p2', type: 'image', color: '#D6E4FF', takenAt: new Date(), takenAtStr: '09:17', productType: null },
-  { id: 'p3', type: 'image', color: '#D6FFD6', takenAt: new Date(), takenAtStr: '09:18', productType: 'อาหารแห้ง' },
-  { id: 'p4', type: 'video', color: '#FFE8D6', takenAt: new Date(), takenAtStr: '09:20', productType: null, duration: '0:23' },
-  { id: 'p5', type: 'image', color: '#F0D6FF', takenAt: new Date(), takenAtStr: '09:22', productType: 'ขนม' },
-  { id: 'p6', type: 'image', color: '#D6FFF5', takenAt: new Date(), takenAtStr: '09:25', productType: null },
-  { id: 'p7', type: 'video', color: '#FFFAD6', takenAt: new Date(), takenAtStr: '09:28', productType: 'เครื่องสำอาง', duration: '1:05' },
-  { id: 'p8', type: 'image', color: '#FFD6E8', takenAt: new Date(), takenAtStr: '09:31', productType: null },
-]
-
-// ── Product Type Modal ───────────────────────────────────────────────────────
+// ── Product Type Modal ────────────────────────────────────────────────────────
 function ProductTypeModal({ photo, onClose, onSave }) {
   const { t } = useLang()
   const [selected, setSelected] = useState(photo.productType || '')
-  const [search, setSearch] = useState('')
-  const filtered = PRODUCT_TYPES.filter(pt => pt.includes(search))
+  const [search,   setSearch]   = useState('')
+  const [saving,   setSaving]   = useState(false)
+
+  const filtered = PRODUCT_TYPES.filter(pt =>
+    pt.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const handleSave = async () => {
+    if (!selected) return
+    setSaving(true)
+    await onSave(selected)
+    onClose()
+  }
 
   return (
     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50" onClick={onClose}>
@@ -49,13 +55,30 @@ function ProductTypeModal({ photo, onClose, onSave }) {
         <div className="pt-3 pb-2 flex flex-col items-center">
           <div className="w-10 h-1 bg-gray-200 rounded-full"/>
         </div>
+
+        {/* Header thumbnail */}
         <div className="px-5 pb-3 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl flex-shrink-0 shadow-sm" style={{ background: photo.color }}/>
+          {photo.url ? (
+            <img
+              src={photo.url}
+              alt="media"
+              className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl flex-shrink-0 shadow-sm bg-gray-100 flex items-center justify-center">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#D1D5DB" strokeWidth="1.5">
+                <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </div>
+          )}
           <div>
             <p className="text-sm font-bold text-gray-900">{t.selectProductType}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{t.takenAt(photo.takenAtStr)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t.takenAt(formatTime(photo.takenAt))}</p>
           </div>
         </div>
+
+        {/* Search */}
         <div className="px-5 pb-3">
           <div className="relative">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -67,6 +90,8 @@ function ProductTypeModal({ photo, onClose, onSave }) {
             />
           </div>
         </div>
+
+        {/* List */}
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {filtered.map(type => (
             <button key={type} onClick={() => setSelected(type)}
@@ -84,14 +109,25 @@ function ProductTypeModal({ photo, onClose, onSave }) {
               )}
             </button>
           ))}
-          {filtered.length === 0 && <p className="text-center text-gray-400 text-sm py-8">{t.noProductTypeFound}</p>}
+          {filtered.length === 0 && (
+            <p className="text-center text-gray-400 text-sm py-8">{t.noProductTypeFound}</p>
+          )}
         </div>
+
+        {/* Footer button */}
         <div className="p-5 border-t border-gray-100">
-          <button onClick={() => { onSave(selected); onClose() }}
-            disabled={!selected}
+          <button
+            onClick={handleSave}
+            disabled={!selected || saving}
             className="w-full bg-gradient-to-r from-[#06C755] to-[#05B84C] text-white rounded-2xl py-3.5 font-semibold text-sm disabled:opacity-40 shadow-lg shadow-green-200 disabled:shadow-none active:scale-[0.98] transition-all"
           >
-            {t.save}
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                </svg>
+              </span>
+            ) : t.save}
           </button>
         </div>
       </div>
@@ -99,10 +135,10 @@ function ProductTypeModal({ photo, onClose, onSave }) {
   )
 }
 
-// ── Full-screen Photo/Video Preview ─────────────────────────────────────────
+// ── Full-screen Preview ───────────────────────────────────────────────────────
 function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit }) {
   const { t } = useLang()
-  const [index, setIndex] = useState(startIndex)
+  const [index,         setIndex]         = useState(startIndex)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const touchStartX = useRef(null)
 
@@ -113,30 +149,30 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'ArrowLeft') goPrev()
+      if (e.key === 'ArrowLeft')  goPrev()
       if (e.key === 'ArrowRight') goNext()
-      if (e.key === 'Escape') { if (confirmDelete) setConfirmDelete(false); else onClose() }
+      if (e.key === 'Escape')  { if (confirmDelete) setConfirmDelete(false); else onClose() }
       if (e.key === 'Delete' && canEdit) setConfirmDelete(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [goPrev, goNext, onClose, confirmDelete, canEdit])
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const remaining = items.length - 1
     if (remaining === 0) {
-      onDelete(current.id)
+      await onDelete(current.id)
       onClose()
     } else {
       const nextIndex = index >= remaining ? remaining - 1 : index
-      onDelete(current.id)
+      await onDelete(current.id)
       setIndex(nextIndex)
       setConfirmDelete(false)
     }
   }
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
-  const onTouchEnd = (e) => {
+  const onTouchEnd   = (e) => {
     if (touchStartX.current === null) return
     const dx = e.changedTouches[0].clientX - touchStartX.current
     if (dx > 50) goPrev()
@@ -144,7 +180,10 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
     touchStartX.current = null
   }
 
+  if (!current) return null
+
   const expiryDays = current.type === 'video' ? daysUntilExpiry(current.takenAt) : null
+  const takenAtStr = formatTime(current.takenAt)
 
   return (
     <div className="absolute inset-0 bg-black z-40 flex flex-col"
@@ -157,7 +196,9 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
             <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
-        <span className="text-white/80 text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">{index + 1} / {items.length}</span>
+        <span className="text-white/80 text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
+          {index + 1} / {items.length}
+        </span>
         {canEdit ? (
           <div className="flex items-center gap-2">
             <button onClick={() => onTagPhoto(current)}
@@ -192,7 +233,7 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
               </div>
               <div>
                 <p className="font-bold text-gray-900 text-sm">{current.type === 'video' ? t.deleteVideo : t.deletePhoto}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{t.deleteHint(current.takenAtStr)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t.deleteHint(takenAtStr)}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -211,32 +252,29 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
         </div>
       )}
 
-      {/* Media */}
-      <div className="flex-1 flex items-center justify-center" style={{ background: current.color }}>
+      {/* Media viewer */}
+      <div className="flex-1 flex items-center justify-center bg-black">
         {current.type === 'video' ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <svg width="32" height="32" fill="white" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </div>
-            <span className="text-white/70 text-sm bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full">{current.duration}</span>
-          </div>
+          <video
+            src={current.url}
+            controls
+            playsInline
+            className="w-full h-full object-contain"
+          />
         ) : (
-          <div className="flex items-center justify-center opacity-15">
-            <svg width="80" height="80" fill="none" viewBox="0 0 24 24" stroke="black" strokeWidth="0.5">
-              <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-              <circle cx="12" cy="13" r="3"/>
-            </svg>
-          </div>
+          <img
+            src={current.url}
+            alt={`media ${index + 1}`}
+            className="w-full h-full object-contain"
+          />
         )}
       </div>
 
       {/* Bottom info */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10 pt-6 bg-gradient-to-t from-black/80 to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10 pt-6 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-white/50 text-xs mb-1.5">{current.takenAtStr}</p>
+            <p className="text-white/50 text-xs mb-1.5">{takenAtStr}</p>
             {current.productType ? (
               <span className="inline-flex items-center bg-[#06C755] text-white text-xs font-medium px-3 py-1 rounded-full">
                 {current.productType}
@@ -252,7 +290,7 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pointer-events-auto">
             <button onClick={goPrev} disabled={index === 0}
               className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center disabled:opacity-20 active:bg-white/20"
             >
@@ -269,7 +307,8 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
             </button>
           </div>
         </div>
-        <div className="flex justify-center gap-1 mt-4">
+        {/* Dot indicators */}
+        <div className="flex justify-center gap-1 mt-4 pointer-events-auto">
           {items.map((_, i) => (
             <button key={i} onClick={() => setIndex(i)}
               className={`rounded-full transition-all ${i === index ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/30'}`}
@@ -278,50 +317,66 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
         </div>
       </div>
 
-      <button onClick={goPrev} disabled={index === 0} className="absolute left-0 top-20 bottom-24 w-1/4 disabled:opacity-0" aria-label="prev"/>
-      <button onClick={goNext} disabled={index === items.length - 1} className="absolute right-0 top-20 bottom-24 w-1/4 disabled:opacity-0" aria-label="next"/>
+      {/* Wide tap areas for prev/next */}
+      <button onClick={goPrev} disabled={index === 0}
+        className="absolute left-0 top-20 bottom-24 w-1/4 disabled:opacity-0" aria-label="prev"/>
+      <button onClick={goNext} disabled={index === items.length - 1}
+        className="absolute right-0 top-20 bottom-24 w-1/4 disabled:opacity-0" aria-label="next"/>
     </div>
   )
 }
 
-// ── Media Card ───────────────────────────────────────────────────────────────
+// ── Media Card ────────────────────────────────────────────────────────────────
 function MediaCard({ item, index, onPreview, onTag, canEdit }) {
   const { t } = useLang()
   const expiryDays = item.type === 'video' ? daysUntilExpiry(item.takenAt) : null
-  const isExpired = expiryDays !== null && expiryDays <= 0
+  const isExpired  = expiryDays !== null && expiryDays <= 0
 
   return (
     <div className="relative aspect-square rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
       <button
         onClick={() => onPreview(index)}
-        className="absolute inset-0 active:opacity-80 transition-opacity"
-        style={{ background: item.color }}
+        className="absolute inset-0 active:opacity-80 transition-opacity bg-gray-100"
         aria-label="preview"
       >
+        {/* Thumbnail */}
         {item.type === 'video' ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-10 h-10 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
+          <>
+            <video
+              src={item.url}
+              className="absolute inset-0 w-full h-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-10 h-10 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
             </div>
             {item.duration && (
               <span className="absolute bottom-6 right-1.5 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded-full font-medium">
                 {item.duration}
               </span>
             )}
-          </div>
+          </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center opacity-15">
-            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="black" strokeWidth="1.5">
-              <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-              <circle cx="12" cy="13" r="3"/>
-            </svg>
-          </div>
+          <img
+            src={item.url}
+            alt={`media ${index + 1}`}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
         )}
+
+        {/* Time badge */}
         <span className="absolute top-1.5 right-1.5 bg-black/30 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded-full">
-          {item.takenAtStr}
+          {formatTime(item.takenAt)}
         </span>
+
+        {/* Expiry badge */}
         {item.type === 'video' && expiryDays !== null && expiryDays <= 5 && (
           <span className={`absolute top-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
             isExpired ? 'bg-red-500 text-white' : 'bg-yellow-400 text-yellow-900'
@@ -329,11 +384,13 @@ function MediaCard({ item, index, onPreview, onTag, canEdit }) {
             {isExpired ? t.expired : t.videoExpiry(expiryDays)}
           </span>
         )}
+
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/50 to-transparent rounded-b-2xl"/>
       </button>
 
+      {/* Product type badge / tag button */}
       <button
-        onClick={() => canEdit ? onTag(item) : null}
+        onClick={() => canEdit ? onTag(item) : undefined}
         className="absolute bottom-0 left-0 right-0 px-1.5 pb-1.5"
         aria-label="tag"
       >
@@ -355,31 +412,34 @@ function MediaCard({ item, index, onPreview, onTag, canEdit }) {
   )
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const { t } = useLang()
-  const [photos, setPhotos] = useState(MOCK_PHOTOS)
-  const [taggingPhoto, setTaggingPhoto] = useState(null)
-  const [previewIndex, setPreviewIndex] = useState(null)
+  const [taggingPhoto,     setTaggingPhoto]     = useState(null)
+  const [previewIndex,     setPreviewIndex]     = useState(null)
   const [showConfirmClose, setShowConfirmClose] = useState(false)
-  const [groupBy, setGroupBy] = useState(false)
+  const [groupBy,          setGroupBy]          = useState(false)
 
-  const isAdmin = user?.role === 'admin'
+  const { media, loading, handleTag, handleDelete, handleClose } = useQueueDetail(queue)
+
+  const isAdmin     = user?.role === 'admin'
   const canEditItem = (item) => isAdmin || isToday(item.takenAt)
 
-  const untaggedCount = photos.filter(p => !p.productType).length
-  const images = photos.filter(p => p.type === 'image')
-  const videos = photos.filter(p => p.type === 'video')
+  const untaggedCount = media.filter(p => !p.productType).length
+  const images        = media.filter(p => p.type === 'image')
+  const videos        = media.filter(p => p.type === 'video')
 
-  const handleSaveTag = (productType) => {
-    setPhotos(prev => prev.map(p => p.id === taggingPhoto.id ? { ...p, productType } : p))
+  const handleSaveTag = async (productType) => {
+    if (!taggingPhoto) return
+    await handleTag(taggingPhoto.id, productType)
   }
 
-  const handleDeleteFromPreview = (id) => {
-    setPhotos(prev => prev.filter(p => p.id !== id))
+  const handleDeleteFromPreview = async (id) => {
+    await handleDelete(id)
   }
 
-  const handleCloseQueue = () => {
+  const handleCloseQueue = async () => {
+    await handleClose()
     setShowConfirmClose(false)
     onBack()
   }
@@ -406,14 +466,16 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-bold text-gray-900 text-sm font-mono tracking-wide truncate">{queue?.code || 'RI20240507-001'}</p>
-              {queue?.queue && (
+              <p className="font-bold text-gray-900 text-sm font-mono tracking-wide truncate">
+                {queue?.code || '—'}
+              </p>
+              {queue?.queueNumber && (
                 <span className="bg-[#F0FDF4] text-[#16A34A] text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
-                  {t.queueLabel} {queue.queue}
+                  {t.queueLabel} {queue.queueNumber}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 truncate mt-0.5">{queue?.supplier || 'บริษัท ABC จำกัด'}</p>
+            <p className="text-xs text-gray-400 truncate mt-0.5">{queue?.supplier || ''}</p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -422,12 +484,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 {t.untaggedCount(untaggedCount)}
               </span>
             )}
-            <button
-              onClick={() => setShowConfirmClose(true)}
-              className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
-            >
-              {t.closeQueue}
-            </button>
+            {queue?.status === 'open' && (
+              <button
+                onClick={() => setShowConfirmClose(true)}
+                className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+              >
+                {t.closeQueue}
+              </button>
+            )}
           </div>
         </div>
 
@@ -476,9 +540,15 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
         )}
       </div>
 
-      {/* Grid */}
+      {/* Media grid */}
       <div className="flex-1 overflow-y-auto p-3">
-        {photos.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <svg className="animate-spin w-7 h-7 text-[#06C755]" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+            </svg>
+          </div>
+        ) : media.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-300">
             <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-4">
               <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#D1D5DB" strokeWidth="1">
@@ -491,9 +561,9 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           </div>
         ) : !groupBy ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-            {photos.map((item, i) => (
+            {media.map((item, i) => (
               <MediaCard key={item.id} item={item} index={i}
-                onPreview={(idx) => setPreviewIndex(idx)}
+                onPreview={setPreviewIndex}
                 onTag={setTaggingPhoto}
                 canEdit={canEditItem(item)}
               />
@@ -511,9 +581,9 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t.imagesGroup(images.length)}</span>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                  {images.map((item) => {
-                    const idx = photos.findIndex(p => p.id === item.id)
-                    return <MediaCard key={item.id} item={item} index={idx} onPreview={(i) => setPreviewIndex(i)} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
+                  {images.map(item => {
+                    const idx = media.findIndex(m => m.id === item.id)
+                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
                   })}
                 </div>
               </div>
@@ -528,9 +598,9 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                   <span className="text-xs text-gray-300">{t.videoExpiryLabel(VIDEO_EXPIRY_DAYS)}</span>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                  {videos.map((item) => {
-                    const idx = photos.findIndex(p => p.id === item.id)
-                    return <MediaCard key={item.id} item={item} index={idx} onPreview={(i) => setPreviewIndex(i)} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
+                  {videos.map(item => {
+                    const idx = media.findIndex(m => m.id === item.id)
+                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
                   })}
                 </div>
               </div>
@@ -539,31 +609,38 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
         )}
       </div>
 
-      {/* Camera FAB */}
-      <div className="absolute bottom-6 right-5">
-        <button onClick={onCamera}
-          className="w-15 h-15 w-[60px] h-[60px] bg-[#06C755] rounded-[18px] shadow-xl shadow-green-200 flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.8">
-            <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-            <circle cx="12" cy="13" r="3"/>
-          </svg>
-        </button>
-      </div>
+      {/* Camera FAB — only for open queues */}
+      {queue?.status === 'open' && (
+        <div className="absolute bottom-6 right-5">
+          <button onClick={onCamera}
+            className="w-[60px] h-[60px] bg-[#06C755] rounded-[18px] shadow-xl shadow-green-200 flex items-center justify-center active:scale-90 transition-transform"
+          >
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.8">
+              <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
-      {previewIndex !== null && (
+      {/* Overlays */}
+      {previewIndex !== null && media[previewIndex] && (
         <FullPreview
-          items={photos}
+          items={media}
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
           onTagPhoto={handleTagFromPreview}
           onDelete={handleDeleteFromPreview}
-          canEdit={canEditItem(photos[previewIndex])}
+          canEdit={canEditItem(media[previewIndex])}
         />
       )}
 
       {taggingPhoto && (
-        <ProductTypeModal photo={taggingPhoto} onClose={() => setTaggingPhoto(null)} onSave={handleSaveTag} />
+        <ProductTypeModal
+          photo={taggingPhoto}
+          onClose={() => setTaggingPhoto(null)}
+          onSave={handleSaveTag}
+        />
       )}
 
       {showConfirmClose && (

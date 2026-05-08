@@ -85,7 +85,10 @@ export const translations = {
     reviewPhoto: 'ตรวจสอบรูป',
     retake: 'ถ่ายใหม่',
     usePhoto: 'ใช้รูปนี้',
+    uploading: 'กำลังอัปโหลด...',
     cameraHint: 'คุณสามารถเลือกชนิดสินค้าได้ทีหลังในหน้าใบรับสินค้า',
+    cameraPermissionDenied: 'ไม่ได้รับอนุญาตใช้กล้อง กรุณาอนุญาตในการตั้งค่าเบราว์เซอร์',
+    cameraError: 'ไม่สามารถเปิดกล้องได้ กรุณาลองใหม่',
 
     // Relative time
     justNow: 'เพิ่งสร้าง',
@@ -191,7 +194,10 @@ export const translations = {
     reviewPhoto: 'Review Photo',
     retake: 'Retake',
     usePhoto: 'Use Photo',
+    uploading: 'Uploading...',
     cameraHint: 'You can set the product type later in the receipt view',
+    cameraPermissionDenied: 'Camera access denied. Please allow it in browser settings.',
+    cameraError: 'Could not open camera. Please try again.',
 
     // Relative time
     justNow: 'Just created',

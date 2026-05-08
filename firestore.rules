@@ -59,5 +59,10 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
+
+    // ── counters (queue code generation) ─────────────────────────────────────
+    match /counters/{dateStr} {
+      allow read, write: if isAuth();
+    }
   }
 }

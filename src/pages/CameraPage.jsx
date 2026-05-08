@@ -1,70 +1,124 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
+import { useCamera } from '../hooks/useCamera.js'
+import { uploadMedia } from '../services/storageService.js'
+import { addMedia } from '../services/mediaService.js'
 
 export default function CameraPage({ queue, onBack, onPhotoTaken }) {
   const { t } = useLang()
-  const [phase, setPhase] = useState('viewfinder') // viewfinder | preview
-  const [capturedColor, setCapturedColor] = useState(null)
-  const [flash, setFlash] = useState(false)
-  const [facingMode, setFacingMode] = useState('environment')
 
-  const COLORS = ['#FFD6D6','#D6E4FF','#D6FFD6','#FFE8D6','#F0D6FF','#D6FFF5','#FFFAD6','#FFD6E8']
+  const [phase,       setPhase]       = useState('viewfinder') // 'viewfinder' | 'preview'
+  const [capturedFile, setCapturedFile] = useState(null)
+  const [previewUrl,  setPreviewUrl]  = useState(null)
+  const [flash,       setFlash]       = useState(false)
+  const [facingMode,  setFacingMode]  = useState('environment')
+  const [uploading,   setUploading]   = useState(false)
 
-  const handleCapture = () => {
-    // Flash animation
+  const { videoRef, error, ready, handleVideoReady, capture } = useCamera(facingMode)
+
+  // ── capture ────────────────────────────────────────────────────────────────
+  const handleCapture = async () => {
+    if (!ready) return
     setFlash(true)
     setTimeout(() => setFlash(false), 150)
-
-    // Mock captured photo
-    const color = COLORS[Math.floor(Math.random() * COLORS.length)]
-    setCapturedColor(color)
-    setPhase('preview')
+    try {
+      const file = await capture()
+      const url  = URL.createObjectURL(file)
+      setCapturedFile(file)
+      setPreviewUrl(url)
+      setPhase('preview')
+    } catch (err) {
+      console.error('capture failed:', err)
+    }
   }
 
   const handleRetake = () => {
-    setCapturedColor(null)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setCapturedFile(null)
+    setPreviewUrl(null)
     setPhase('viewfinder')
   }
 
-  const handleConfirm = () => {
-    onPhotoTaken({ color: capturedColor })
+  const handleConfirm = async () => {
+    if (!capturedFile || !queue?.id || uploading) return
+    setUploading(true)
+    try {
+      const { url, storagePath } = await uploadMedia(queue.id, capturedFile)
+      await addMedia(queue.id, { url, storagePath, type: 'image' })
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      onPhotoTaken()
+    } catch (err) {
+      console.error('upload failed:', err)
+      setUploading(false)
+    }
   }
 
+  const handleFlipCamera = () => {
+    setFacingMode(f => f === 'environment' ? 'user' : 'environment')
+  }
+
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col bg-black overflow-hidden relative">
       {/* Flash overlay */}
       {flash && <div className="absolute inset-0 bg-white z-50 pointer-events-none"/>}
 
+      {/* ── Viewfinder ─────────────────────────────────────────────────────── */}
       {phase === 'viewfinder' && (
         <>
-          {/* Mock viewfinder */}
-          <div className="flex-1 relative">
-            {/* Simulated camera feed */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900">
-              {/* Grid overlay */}
-              <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="border border-white/10"/>
-                ))}
-              </div>
-
-              {/* Center focus indicator */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 relative">
-                  <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-white/80"/>
-                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-white/80"/>
-                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-white/80"/>
-                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-white/80"/>
+          <div className="flex-1 relative bg-black">
+            {error ? (
+              /* Permission / error state */
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
+                <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
+                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.8">
+                    <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <circle cx="12" cy="13" r="3"/>
+                  </svg>
                 </div>
+                <p className="text-white/80 text-sm text-center leading-relaxed">
+                  {t[error] ?? t.cameraError}
+                </p>
               </div>
+            ) : (
+              <>
+                {/* Live video */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  onCanPlay={handleVideoReady}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
 
-              {/* Simulated products */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                <svg width="120" height="120" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="0.5">
-                  <path strokeLinecap="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                </svg>
-              </div>
-            </div>
+                {/* Loading spinner while stream starts */}
+                {!ready && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="animate-spin w-8 h-8 text-white/50" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+                    </svg>
+                  </div>
+                )}
+
+                {/* Rule-of-thirds grid */}
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} className="border border-white/10"/>
+                  ))}
+                </div>
+
+                {/* Focus brackets */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-20 h-20 relative">
+                    <div className="absolute top-0 left-0  w-5 h-5 border-t-2 border-l-2 border-white/80"/>
+                    <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-white/80"/>
+                    <div className="absolute bottom-0 left-0  w-5 h-5 border-b-2 border-l-2 border-white/80"/>
+                    <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-white/80"/>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Top controls */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
@@ -73,15 +127,8 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
                   <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
               </button>
-
-              <div className="text-center">
-                <p className="text-white text-xs font-medium opacity-90">{queue?.code}</p>
-              </div>
-
-              <button
-                onClick={() => setFacingMode(f => f === 'environment' ? 'user' : 'environment')}
-                className="active:scale-90"
-              >
+              <p className="text-white text-xs font-medium opacity-90">{queue?.code}</p>
+              <button onClick={handleFlipCamera} className="active:scale-90" disabled={!!error}>
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -89,43 +136,31 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
             </div>
           </div>
 
-          {/* Bottom controls */}
-          <div className="bg-black px-6 py-8 flex items-center justify-between">
-            {/* Last photo thumbnail */}
-            <div className="w-12 h-12 rounded-xl bg-gray-700 flex items-center justify-center">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth="1.5">
-                <path strokeLinecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-            </div>
-
-            {/* Shutter button */}
+          {/* Shutter row */}
+          <div className="bg-black px-6 py-8 flex items-center justify-center">
             <button
               onClick={handleCapture}
-              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform"
+              disabled={!ready || !!error}
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform disabled:opacity-40"
             >
               <div className="w-14 h-14 bg-white rounded-full"/>
             </button>
-
-            {/* Placeholder */}
-            <div className="w-12 h-12"/>
           </div>
         </>
       )}
 
+      {/* ── Preview ────────────────────────────────────────────────────────── */}
       {phase === 'preview' && (
         <>
-          {/* Preview */}
-          <div className="flex-1 relative" style={{ background: capturedColor }}>
-            <div className="absolute inset-0 flex items-center justify-center opacity-20">
-              <svg width="100" height="100" fill="none" viewBox="0 0 24 24" stroke="black" strokeWidth="0.5">
-                <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                <circle cx="12" cy="13" r="3"/>
-              </svg>
-            </div>
-
+          <div className="flex-1 relative bg-black">
+            <img
+              src={previewUrl}
+              alt="captured"
+              className="absolute inset-0 w-full h-full object-contain"
+            />
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4 bg-gradient-to-b from-black/40 to-transparent">
-              <button onClick={handleRetake} className="active:scale-90">
+              <button onClick={handleRetake} disabled={uploading} className="active:scale-90">
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
                   <path strokeLinecap="round" d="M15 19l-7-7 7-7"/>
                 </svg>
@@ -135,23 +170,30 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
             </div>
           </div>
 
-          {/* Preview actions */}
+          {/* Action row */}
           <div className="bg-black px-6 py-6">
-            <p className="text-white/60 text-xs text-center mb-4">
-              {t.cameraHint}
-            </p>
+            <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
             <div className="flex gap-3">
               <button
                 onClick={handleRetake}
-                className="flex-1 border border-white/30 text-white rounded-xl py-3 text-sm font-medium active:bg-white/10"
+                disabled={uploading}
+                className="flex-1 border border-white/30 text-white rounded-xl py-3 text-sm font-medium active:bg-white/10 disabled:opacity-40 transition-opacity"
               >
                 {t.retake}
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-transform"
+                disabled={uploading}
+                className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-70"
               >
-                {t.usePhoto}
+                {uploading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                    </svg>
+                    {t.uploading}
+                  </span>
+                ) : t.usePhoto}
               </button>
             </div>
           </div>

@@ -1,32 +1,22 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
+import { useQueueList } from '../hooks/useQueueList.js'
 
-function generateQueueCode(existingQueues) {
+// ── utilities ─────────────────────────────────────────────────────────────────
+
+function parseCode(code) {
+  const m = code?.match(/^RI(\d{4})(\d{2})(\d{2})-(\d+)$/)
+  if (!m) return { date: '', seq: code ?? '' }
+  return { date: `${m[3]}-${m[2]}-${m[1]}`, seq: m[4] }
+}
+
+function getTodayPrefix() {
   const now = new Date()
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
-  const dateStr = `${y}${m}${d}`
-  const prefix = `RI${dateStr}-`
-  const todayCodes = existingQueues.filter(q => q.code.startsWith(prefix))
-  return `${prefix}${String(todayCodes.length + 1).padStart(3, '0')}`
+  return `RI${y}${m}${d}`
 }
-
-function parseCode(code) {
-  const m = code.match(/^RI(\d{4})(\d{2})(\d{2})-(\d+)$/)
-  if (!m) return { date: '', seq: code }
-  return { date: `${m[3]}-${m[2]}-${m[1]}`, seq: m[4] }
-}
-
-const QUEUE_ALLOWED = /^[0-9.,\-+]*$/
-
-const MOCK_QUEUES = [
-  { id: 'q001', code: 'RI20240507-001', queue: '1', supplier: 'บริษัท ABC จำกัด', note: '', photoCount: 8, videoCount: 2, lastPhotoAt: new Date(Date.now() - 2 * 60000), status: 'open', hasUntagged: true, pinned: true, createdAt: new Date() },
-  { id: 'q002', code: 'RI20240507-002', queue: '2', supplier: 'ห้างหุ้นส่วน XYZ', note: 'สินค้าแช่เย็น', photoCount: 7, videoCount: 0, lastPhotoAt: new Date(Date.now() - 60 * 60000), status: 'open', hasUntagged: false, pinned: false, createdAt: new Date() },
-  { id: 'q003', code: 'RI20240506-003', queue: '3', supplier: 'บริษัท 123 คอร์ป', note: '', photoCount: 23, videoCount: 1, lastPhotoAt: new Date(Date.now() - 25 * 3600000), status: 'closed', hasUntagged: false, pinned: false, createdAt: new Date(Date.now() - 86400000) },
-  { id: 'q004', code: 'RI20240507-003', queue: '4', supplier: 'นายสมศรี ค้าส่ง', note: '', photoCount: 0, videoCount: 0, lastPhotoAt: null, status: 'open', hasUntagged: false, pinned: false, createdAt: new Date() },
-  { id: 'q005', code: 'RI20240507-004', queue: '5', supplier: 'บริษัท DEF ซัพพลาย', note: 'ด่วน', photoCount: 5, videoCount: 0, lastPhotoAt: new Date(Date.now() - 3 * 3600000), status: 'open', hasUntagged: true, pinned: false, createdAt: new Date() },
-]
 
 function timeAgo(date, t) {
   if (!date) return t.justNow
@@ -41,23 +31,28 @@ function timeAgo(date, t) {
   return t.daysAgo(days)
 }
 
-function NewQueueModal({ onClose, onCreate, existingQueues }) {
+const QUEUE_ALLOWED = /^[0-9.,\-+]*$/
+
+// ── NewQueueModal ─────────────────────────────────────────────────────────────
+
+function NewQueueModal({ onClose, onCreate }) {
   const { t } = useLang()
-  const [queueNum, setQueueNum] = useState('')
-  const [supplier, setSupplier] = useState('')
-  const [note, setNote] = useState('')
+  const [queueNum, setQueueNum]   = useState('')
+  const [supplier, setSupplier]   = useState('')
+  const [note, setNote]           = useState('')
   const [queueError, setQueueError] = useState('')
-  const previewCode = generateQueueCode(existingQueues)
+  const [saving, setSaving]       = useState(false)
 
   const handleQueueChange = (val) => {
     if (val === '' || QUEUE_ALLOWED.test(val)) { setQueueNum(val); setQueueError('') }
     else setQueueError(t.queueInvalid)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!queueNum.trim()) { setQueueError(t.queueRequired); return }
-    onCreate({ queue: queueNum, supplier, note })
+    setSaving(true)
+    await onCreate({ queueNumber: queueNum, supplier, note })
     onClose()
   }
 
@@ -77,7 +72,9 @@ function NewQueueModal({ onClose, onCreate, existingQueues }) {
             </div>
             <div>
               <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{t.autoCode}</p>
-              <p className="text-base font-bold text-[#06C755] font-mono tracking-wide">{previewCode}</p>
+              <p className="text-base font-bold text-[#06C755] font-mono tracking-wide">
+                {getTodayPrefix()}-<span className="opacity-40">???</span>
+              </p>
             </div>
           </div>
 
@@ -106,10 +103,17 @@ function NewQueueModal({ onClose, onCreate, existingQueues }) {
                 className="w-full bg-gray-50 rounded-2xl px-4 py-3 text-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-[#06C755] outline-none transition-all resize-none"
               />
             </div>
-            <button type="submit"
-              className="w-full bg-gradient-to-r from-[#06C755] to-[#05B84C] text-white rounded-2xl py-3.5 font-semibold text-sm mt-1 shadow-lg shadow-green-200 active:scale-[0.98] transition-transform"
+            <button type="submit" disabled={saving}
+              className="w-full bg-gradient-to-r from-[#06C755] to-[#05B84C] text-white rounded-2xl py-3.5 font-semibold text-sm mt-1 shadow-lg shadow-green-200 active:scale-[0.98] transition-transform disabled:opacity-60"
             >
-              {t.createQueue}
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                  </svg>
+                  {t.creating ?? t.createQueue}
+                </span>
+              ) : t.createQueue}
             </button>
           </form>
         </div>
@@ -117,6 +121,8 @@ function NewQueueModal({ onClose, onCreate, existingQueues }) {
     </div>
   )
 }
+
+// ── QueueItem ─────────────────────────────────────────────────────────────────
 
 function QueueItem({ queue, onSelect, onTogglePin }) {
   const { t } = useLang()
@@ -128,7 +134,6 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
         onClick={() => onSelect(queue)}
         className="w-full bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:shadow-[0_1px_4px_rgba(0,0,0,0.08)] active:scale-[0.99] transition-all text-left overflow-hidden"
       >
-        {/* Pinned accent bar */}
         {queue.pinned && (
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#06C755] rounded-l-2xl"/>
         )}
@@ -151,7 +156,7 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Row 1: date + time ago */}
+            {/* Row 1: date · receipt no + time ago */}
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-gray-400">
                 {date}
@@ -160,19 +165,19 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
               </span>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {queue.hasUntagged && <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"/>}
-                <span className="text-[11px] text-gray-400">{timeAgo(queue.lastPhotoAt, t)}</span>
+                <span className="text-[11px] text-gray-400">{timeAgo(queue.lastMediaAt, t)}</span>
               </div>
             </div>
 
-            {/* Row 2: queue number (prominent) */}
-            {queue.queue && (
+            {/* Row 2: queue number */}
+            {queue.queueNumber && (
               <p className="text-[15px] font-semibold text-gray-900 mt-1 leading-tight">
-                {t.queueLabel} {queue.queue}
+                {t.queueLabel} {queue.queueNumber}
               </p>
             )}
 
             {/* Row 3: supplier */}
-            {queue.supplier && queue.supplier !== '-' && (
+            {queue.supplier && (
               <p className="text-sm text-gray-500 mt-0.5 truncate">{queue.supplier}</p>
             )}
 
@@ -217,7 +222,7 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
 
       {/* Pin button */}
       <button
-        onClick={(e) => { e.stopPropagation(); onTogglePin(queue.id) }}
+        onClick={(e) => { e.stopPropagation(); onTogglePin(queue.id, queue.pinned) }}
         className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
           queue.pinned
             ? 'bg-[#06C755]/10'
@@ -225,50 +230,40 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
         }`}
         aria-label={queue.pinned ? 'ถอดหมุด' : 'ปักหมุด'}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill={queue.pinned ? '#06C755' : 'none'} stroke={queue.pinned ? '#06C755' : '#9CA3AF'} strokeWidth="2">
+        <svg width="14" height="14" viewBox="0 0 24 24"
+          fill={queue.pinned ? '#06C755' : 'none'}
+          stroke={queue.pinned ? '#06C755' : '#9CA3AF'} strokeWidth="2"
+        >
           <path d="M12 2C8.686 2 6 4.686 6 8c0 4.418 6 12 6 12s6-7.582 6-12c0-3.314-2.686-6-6-6z"/>
-          <circle cx="12" cy="8" r="2" fill={queue.pinned ? 'white' : 'none'} stroke={queue.pinned ? '#06C755' : '#9CA3AF'}/>
+          <circle cx="12" cy="8" r="2"
+            fill={queue.pinned ? 'white' : 'none'}
+            stroke={queue.pinned ? '#06C755' : '#9CA3AF'}
+          />
         </svg>
       </button>
     </div>
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function QueueListPage({ user, onSelectQueue, onLogout }) {
   const { t, lang, toggleLang } = useLang()
-  const [queues, setQueues] = useState(MOCK_QUEUES)
-  const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [filter, setFilter] = useState('all')
 
-  const handleCreate = ({ queue, supplier, note }) => {
-    const code = generateQueueCode(queues)
-    setQueues(prev => [{
-      id: `q${Date.now()}`, code, queue, supplier: supplier || '-', note: note || '',
-      photoCount: 0, videoCount: 0, lastPhotoAt: null,
-      status: 'open', hasUntagged: false, pinned: false, createdAt: new Date(),
-    }, ...prev])
-  }
+  const {
+    queues, loading,
+    search, setSearch,
+    filter, setFilter,
+    handleCreate,
+    handleTogglePin,
+  } = useQueueList()
 
-  const handleTogglePin = (id) => {
-    setQueues(prev => prev.map(q => q.id === id ? { ...q, pinned: !q.pinned } : q))
-  }
-
-  const filtered = queues.filter(q => {
-    const matchSearch =
-      q.code.toLowerCase().includes(search.toLowerCase()) ||
-      q.supplier.includes(search) ||
-      q.queue.includes(search)
-    const matchFilter = filter === 'all' || (filter === 'open' ? q.status === 'open' : q.status === 'closed')
-    return matchSearch && matchFilter
-  })
-
-  const sorted = [
-    ...filtered.filter(q => q.pinned),
-    ...filtered.filter(q => !q.pinned),
+  const TABS = [
+    ['all',    t.filterAll],
+    ['open',   t.filterOpen],
+    ['closed', t.filterClosed],
   ]
-
-  const TABS = [['all', t.filterAll], ['open', t.filterOpen], ['closed', t.filterClosed]]
 
   return (
     <div className="flex-1 flex flex-col bg-[#F5F7FA] overflow-hidden relative">
@@ -291,13 +286,14 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
                 <path strokeLinecap="round" d="M12 5v14M5 12h14"/>
               </svg>
             </button>
-            {/* Avatar + logout on long-press / click */}
             <button
               onClick={onLogout}
               title="ออกจากระบบ"
               className="w-8 h-8 bg-[#06C755]/10 rounded-xl flex items-center justify-center active:bg-red-50 transition-colors group"
             >
-              <span className="text-xs font-bold text-[#06C755] group-active:hidden">{user?.displayName?.charAt(0) || 'U'}</span>
+              <span className="text-xs font-bold text-[#06C755] group-active:hidden">
+                {user?.displayName?.charAt(0) || 'U'}
+              </span>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="hidden group-active:block">
                 <path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
               </svg>
@@ -318,12 +314,10 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
           />
         </div>
 
-        {/* Underline tabs */}
+        {/* Tabs */}
         <div className="flex">
           {TABS.map(([val, label]) => (
-            <button
-              key={val}
-              onClick={() => setFilter(val)}
+            <button key={val} onClick={() => setFilter(val)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 filter === val
                   ? 'text-[#06C755] border-[#06C755]'
@@ -338,22 +332,36 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto pt-3 pb-4">
-        {sorted.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-            <svg width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <svg className="animate-spin w-7 h-7 text-[#06C755]" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+            </svg>
+          </div>
+        ) : queues.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <svg width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="#D1D5DB" strokeWidth="1">
               <path strokeLinecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
             <p className="mt-3 text-sm text-gray-400">{t.noQueues}</p>
           </div>
         ) : (
-          sorted.map(queue => (
-            <QueueItem key={queue.id} queue={queue} onSelect={onSelectQueue} onTogglePin={handleTogglePin} />
+          queues.map(queue => (
+            <QueueItem
+              key={queue.id}
+              queue={queue}
+              onSelect={onSelectQueue}
+              onTogglePin={handleTogglePin}
+            />
           ))
         )}
       </div>
 
       {showModal && (
-        <NewQueueModal onClose={() => setShowModal(false)} onCreate={handleCreate} existingQueues={queues} />
+        <NewQueueModal
+          onClose={() => setShowModal(false)}
+          onCreate={handleCreate}
+        />
       )}
     </div>
   )
