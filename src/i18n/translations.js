@@ -94,6 +94,12 @@ export const translations = {
     yesterday: 'เมื่อวาน',
     daysAgo: (n) => `${n} วันที่แล้ว`,
 
+    // Auth errors
+    invalidCredential: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+    tooManyRequests: 'ลองเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่',
+    networkError: 'ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต',
+    unknownError: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
+
     // Empty state
     selectQueueHint: 'เลือกใบรับสินค้า',
     selectQueueSubHint: 'เพื่อดูรูปภาพและวิดีโอ',
@@ -193,6 +199,12 @@ export const translations = {
     hoursAgo: (n) => `${n} hr ago`,
     yesterday: 'Yesterday',
     daysAgo: (n) => `${n} days ago`,
+
+    // Auth errors
+    invalidCredential: 'Incorrect email or password',
+    tooManyRequests: 'Too many attempts. Please wait a moment.',
+    networkError: 'Connection failed. Check your internet.',
+    unknownError: 'Something went wrong. Please try again.',
 
     // Empty state
     selectQueueHint: 'Select a receipt',

@@ -4,8 +4,8 @@ import QueueListPage from './pages/QueueListPage.jsx'
 import QueueDetailPage from './pages/QueueDetailPage.jsx'
 import CameraPage from './pages/CameraPage.jsx'
 import { useLang } from './contexts/LangContext.jsx'
-
-const MOCK_USER = { uid: 'user1', email: 'staff@company.com', displayName: 'สมชาย ใจดี', role: 'staff' }
+import { useAuthContext } from './contexts/AuthContext.jsx'
+import { useAuth } from './hooks/useAuth.js'
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768)
@@ -17,10 +17,22 @@ function useIsDesktop() {
   return isDesktop
 }
 
+function LoadingScreen() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-white">
+      <div className="w-16 h-16 bg-[#06C755]/10 rounded-2xl flex items-center justify-center">
+        <svg className="animate-spin w-8 h-8 text-[#06C755]" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+        </svg>
+      </div>
+    </div>
+  )
+}
+
 function EmptyDetailPanel() {
   const { t } = useLang()
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-[#F0F0F0] select-none">
+    <div className="flex-1 flex flex-col items-center justify-center bg-[#F5F7FA] select-none">
       <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-5">
         <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="#06C755" strokeWidth="1.2">
           <path strokeLinecap="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -33,47 +45,77 @@ function EmptyDetailPanel() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState('login')
-  const [user, setUser] = useState(null)
+  const { user, loading } = useAuthContext()
+  const { handleLogout } = useAuth()
   const [selectedQueue, setSelectedQueue] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [mobileScreen, setMobileScreen] = useState('queueList')
   const isDesktop = useIsDesktop()
 
-  const handleLogin = () => { setUser(MOCK_USER); setScreen('queueList') }
-  const handleSelectQueue = (queue) => { setSelectedQueue(queue); if (!isDesktop) setScreen('queueDetail') }
-  const handleOpenCamera = () => { if (isDesktop) setShowCamera(true); else setScreen('camera') }
-  const handlePhotoTaken = () => { setShowCamera(false); if (!isDesktop) setScreen('queueDetail') }
-  const handleBackFromDetail = () => { setSelectedQueue(null); if (!isDesktop) setScreen('queueList') }
-  const handleBackFromCamera = () => { setShowCamera(false); if (!isDesktop) setScreen('queueDetail') }
+  useEffect(() => {
+    if (!user) {
+      setSelectedQueue(null)
+      setMobileScreen('queueList')
+    }
+  }, [user])
 
-  if (screen === 'login') {
+  if (loading) return <LoadingScreen />
+
+  // ── Not logged in ──────────────────────────────────────────────────────────
+  if (!user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F0F0F0]">
+      <div className="h-screen flex items-center justify-center bg-[#F5F7FA]">
         <div className="w-full md:max-w-md h-screen md:h-auto md:rounded-2xl md:shadow-xl overflow-hidden flex flex-col">
-          <LoginPage onLogin={handleLogin} />
+          <LoginPage />
         </div>
       </div>
     )
   }
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleSelectQueue = (queue) => {
+    setSelectedQueue(queue)
+    if (!isDesktop) setMobileScreen('queueDetail')
+  }
+  const handleOpenCamera = () => {
+    if (isDesktop) setShowCamera(true)
+    else setMobileScreen('camera')
+  }
+  const handlePhotoTaken = () => {
+    setShowCamera(false)
+    if (!isDesktop) setMobileScreen('queueDetail')
+  }
+  const handleBackFromDetail = () => {
+    setSelectedQueue(null)
+    if (!isDesktop) setMobileScreen('queueList')
+  }
+  const handleBackFromCamera = () => {
+    setShowCamera(false)
+    if (!isDesktop) setMobileScreen('queueDetail')
+  }
+
+  // ── Mobile ─────────────────────────────────────────────────────────────────
   if (!isDesktop) {
     return (
       <div className="h-screen flex flex-col overflow-hidden relative">
-        {screen === 'queueList' && <QueueListPage user={user} onSelectQueue={handleSelectQueue} />}
-        {screen === 'queueDetail' && (
+        {mobileScreen === 'queueList' && (
+          <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
+        )}
+        {mobileScreen === 'queueDetail' && (
           <QueueDetailPage queue={selectedQueue} user={user} onBack={handleBackFromDetail} onCamera={handleOpenCamera} />
         )}
-        {screen === 'camera' && (
+        {mobileScreen === 'camera' && (
           <CameraPage queue={selectedQueue} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
         )}
       </div>
     )
   }
 
+  // ── Desktop two-panel ──────────────────────────────────────────────────────
   return (
-    <div className="h-screen flex overflow-hidden bg-[#F0F0F0] relative">
-      <div className="w-80 xl:w-96 flex-shrink-0 flex flex-col border-r border-gray-200 overflow-hidden shadow-sm">
-        <QueueListPage user={user} onSelectQueue={handleSelectQueue} />
+    <div className="h-screen flex overflow-hidden bg-[#F5F7FA] relative">
+      <div className="w-80 xl:w-96 flex-shrink-0 flex flex-col border-r border-gray-200 overflow-hidden bg-white">
+        <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         {selectedQueue

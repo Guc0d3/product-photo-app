@@ -234,7 +234,7 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
   )
 }
 
-export default function QueueListPage({ user, onSelectQueue }) {
+export default function QueueListPage({ user, onSelectQueue, onLogout }) {
   const { t, lang, toggleLang } = useLang()
   const [queues, setQueues] = useState(MOCK_QUEUES)
   const [search, setSearch] = useState('')
@@ -291,9 +291,17 @@ export default function QueueListPage({ user, onSelectQueue }) {
                 <path strokeLinecap="round" d="M12 5v14M5 12h14"/>
               </svg>
             </button>
-            <div className="w-8 h-8 bg-[#06C755]/10 rounded-xl flex items-center justify-center">
-              <span className="text-xs font-bold text-[#06C755]">{user?.displayName?.charAt(0) || 'U'}</span>
-            </div>
+            {/* Avatar + logout on long-press / click */}
+            <button
+              onClick={onLogout}
+              title="ออกจากระบบ"
+              className="w-8 h-8 bg-[#06C755]/10 rounded-xl flex items-center justify-center active:bg-red-50 transition-colors group"
+            >
+              <span className="text-xs font-bold text-[#06C755] group-active:hidden">{user?.displayName?.charAt(0) || 'U'}</span>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="hidden group-active:block">
+                <path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
           </div>
         </div>
 

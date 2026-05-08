@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
+import { useAuth } from '../hooks/useAuth.js'
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage() {
   const { t, lang, toggleLang } = useLang()
+  const { handleLogin, loading, error } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setLoading(true)
-    setTimeout(() => { setLoading(false); onLogin() }, 800)
+    handleLogin(email, password)
   }
 
   return (
@@ -42,7 +42,7 @@ export default function LoginPage({ onLogin }) {
 
       {/* Form */}
       <div className="flex-1 bg-white px-6 pt-6">
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
               {t.email}
@@ -52,6 +52,8 @@ export default function LoginPage({ onLogin }) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder={t.emailPlaceholder}
+              autoComplete="email"
+              required
               className="w-full bg-gray-50 rounded-2xl px-4 py-3.5 text-sm text-gray-900 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#06C755] focus:bg-white outline-none transition-all"
             />
           </div>
@@ -64,9 +66,22 @@ export default function LoginPage({ onLogin }) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={t.passwordPlaceholder}
+              autoComplete="current-password"
+              required
               className="w-full bg-gray-50 rounded-2xl px-4 py-3.5 text-sm text-gray-900 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#06C755] focus:bg-white outline-none transition-all"
             />
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="flex-shrink-0">
+                <path strokeLinecap="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <p className="text-sm text-red-600">{t[error] || t.unknownError}</p>
+            </div>
+          )}
+
           <div className="pt-1">
             <button
               type="submit"

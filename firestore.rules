@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function isToday(ts) {
+      return ts.date() == request.time.date();
+    }
+
+    // ── users ─────────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid)
+        && request.resource.data.role == 'staff';   // self-register as staff only
+      allow update: if isAdmin();                    // only admin can change role
+      allow delete: if false;
+    }
+
+    // ── queues ────────────────────────────────────────────────────────────────
+    match /queues/{queueId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAdmin();
+
+      // ── media subcollection ───────────────────────────────────────────────
+      match /media/{mediaId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+
+        // staff: edit own media taken today | admin: edit all
+        allow update: if isAdmin() ||
+          (isAuth() &&
+           resource.data.takenBy == request.auth.uid &&
+           isToday(resource.data.takenAt));
+
+        allow delete: if isAdmin() ||
+          (isAuth() &&
+           resource.data.takenBy == request.auth.uid &&
+           isToday(resource.data.takenAt));
+      }
+    }
+
+    // ── products ──────────────────────────────────────────────────────────────
+    match /products/{productId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+  }
+}
