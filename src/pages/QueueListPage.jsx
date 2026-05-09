@@ -52,8 +52,14 @@ function NewQueueModal({ onClose, onCreate }) {
     e.preventDefault()
     if (!queueNum.trim()) { setQueueError(t.queueRequired); return }
     setSaving(true)
-    await onCreate({ queueNumber: queueNum, supplier, note })
-    onClose()
+    try {
+      await onCreate({ queueNumber: queueNum, supplier, note })
+      onClose()
+    } catch (err) {
+      const key = err.message === 'duplicateQueueNumber' ? 'duplicateQueueNumber' : 'createError'
+      setQueueError(t[key] ?? t.createError)
+      setSaving(false)
+    }
   }
 
   return (

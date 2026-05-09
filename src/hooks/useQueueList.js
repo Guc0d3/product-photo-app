@@ -27,12 +27,36 @@ export function useQueueList() {
   }, [])
 
   // ── actions ─────────────────────────────────────────────────────────────
+
+  /**
+   * ตรวจว่า queueNumber ซ้ำกับใบที่สร้างวันนี้หรือไม่
+   * เปรียบเทียบกับ code prefix RI{YYYYMMDD} เพราะ queues โหลดไว้ใน state แล้ว
+   */
+  function isDuplicateToday(queueNumber) {
+    const now   = new Date()
+    const y     = now.getFullYear()
+    const m     = String(now.getMonth() + 1).padStart(2, '0')
+    const d     = String(now.getDate()).padStart(2, '0')
+    const prefix = `RI${y}${m}${d}`
+    return queues.some(
+      q => q.queueNumber === queueNumber && q.code?.startsWith(prefix),
+    )
+  }
+
+  /**
+   * สร้างใบรับสินค้าใหม่
+   * throw 'duplicateQueueNumber' ถ้าคิวซ้ำในวันเดียวกัน
+   */
   const handleCreate = async ({ queueNumber, supplier, note }) => {
+    if (isDuplicateToday(queueNumber)) {
+      throw new Error('duplicateQueueNumber')
+    }
     try {
       await createQueue({ queueNumber, supplier, note })
     } catch (err) {
       console.error('createQueue:', err)
       setError(err.message)
+      throw err
     }
   }
 
