@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
 import { useQueueList } from '../hooks/useQueueList.js'
+import { updateDisplayName } from '../services/authService.js'
 
 // ── utilities ─────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,107 @@ function timeAgo(date, t) {
 }
 
 const QUEUE_ALLOWED = /^[0-9.,\-+]*$/
+
+// ── ProfileModal ──────────────────────────────────────────────────────────────
+
+function ProfileModal({ user, onClose, onLogout }) {
+  const { t } = useLang()
+  const [name,   setName]   = useState(user?.displayName || '')
+  const [saving, setSaving] = useState(false)
+  const [saved,  setSaved]  = useState(false)
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await updateDisplayName(name.trim())
+      setSaved(true)
+      setTimeout(onClose, 800)
+    } catch (err) {
+      console.error('updateDisplayName:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-end z-50" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="pt-3 pb-2 flex flex-col items-center">
+          <div className="w-10 h-1 bg-gray-200 rounded-full"/>
+        </div>
+        <div className="px-5 pb-10">
+          {/* Avatar */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 bg-[#06C755]/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <span className="text-xl font-bold text-[#06C755]">
+                {(user?.displayName || user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">
+                {user?.displayName || <span className="text-gray-400 italic">ยังไม่ได้ตั้งชื่อ</span>}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${
+                user?.role === 'admin'
+                  ? 'bg-purple-50 text-purple-500'
+                  : 'bg-[#F0FDF4] text-[#16A34A]'
+              }`}>
+                {user?.role === 'admin' ? 'Admin' : 'Staff'}
+              </span>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSave} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                ชื่อที่แสดง
+              </label>
+              <input
+                autoFocus
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="เช่น สมชาย ใจดี"
+                className="w-full bg-gray-50 rounded-2xl px-4 py-3 text-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-[#06C755] outline-none transition-all"
+              />
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                ชื่อนี้จะปรากฏเป็นลายน้ำบนรูปที่ถ่าย
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={!name.trim() || saving || saved}
+              className="w-full bg-gradient-to-r from-[#06C755] to-[#05B84C] text-white rounded-2xl py-3.5 font-semibold text-sm shadow-lg shadow-green-200 active:scale-[0.98] transition-all disabled:opacity-60"
+            >
+              {saved ? '✓ บันทึกแล้ว' : saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                  </svg>
+                  กำลังบันทึก...
+                </span>
+              ) : 'บันทึก'}
+            </button>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 text-sm text-red-400 py-2 mt-1 active:text-red-600 transition-colors"
+            >
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+              ออกจากระบบ
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── NewQueueModal ─────────────────────────────────────────────────────────────
 
@@ -255,7 +357,8 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
 
 export default function QueueListPage({ user, onSelectQueue, onLogout }) {
   const { t, lang, toggleLang } = useLang()
-  const [showModal, setShowModal] = useState(false)
+  const [showModal,   setShowModal]   = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
 
   const {
     queues, loading,
@@ -293,16 +396,13 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
               </svg>
             </button>
             <button
-              onClick={onLogout}
-              title="ออกจากระบบ"
-              className="w-8 h-8 bg-[#06C755]/10 rounded-xl flex items-center justify-center active:bg-red-50 transition-colors group"
+              onClick={() => setShowProfile(true)}
+              title="โปรไฟล์"
+              className="w-8 h-8 bg-[#06C755]/10 rounded-xl flex items-center justify-center active:bg-[#06C755]/20 transition-colors"
             >
-              <span className="text-xs font-bold text-[#06C755] group-active:hidden">
-                {user?.displayName?.charAt(0) || 'U'}
+              <span className="text-xs font-bold text-[#06C755]">
+                {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
               </span>
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="hidden group-active:block">
-                <path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-              </svg>
             </button>
           </div>
         </div>
@@ -367,6 +467,14 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
         <NewQueueModal
           onClose={() => setShowModal(false)}
           onCreate={handleCreate}
+        />
+      )}
+
+      {showProfile && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={onLogout}
         />
       )}
     </div>

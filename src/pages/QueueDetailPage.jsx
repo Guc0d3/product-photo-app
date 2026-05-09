@@ -277,7 +277,7 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
       )}
 
       {/* Media viewer */}
-      <div className="flex-1 flex items-center justify-center bg-black">
+      <div className="flex-1 relative flex items-center justify-center bg-black">
         {current.type === 'video' ? (
           <video
             src={current.url}
@@ -291,6 +291,21 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
             alt={`media ${index + 1}`}
             className="w-full h-full object-contain"
           />
+        )}
+
+        {/* Watermark — user who took the photo */}
+        {current.takenByName && (
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-lg px-2.5 py-1.5 pointer-events-none">
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" className="opacity-70 flex-shrink-0">
+              <path strokeLinecap="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            <span className="text-white/80 text-[11px] font-medium leading-none">
+              {current.takenByName.includes('@')
+                ? current.takenByName.split('@')[0]
+                : current.takenByName}
+            </span>
+          </div>
         )}
       </div>
 

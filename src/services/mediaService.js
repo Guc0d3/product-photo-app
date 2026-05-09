@@ -39,7 +39,8 @@ export function subscribeMedia(queueId, onData, onError) {
  * Add a media item to a queue and increment the relevant counter on the queue doc.
  */
 export async function addMedia(queueId, { url, storagePath, type, duration }) {
-  const uid = auth.currentUser?.uid
+  const uid         = auth.currentUser?.uid
+  const takenByName = auth.currentUser?.displayName || auth.currentUser?.email || uid
   if (!uid) throw new Error('Not authenticated')
 
   const ref = await addDoc(collection(db, 'queues', queueId, 'media'), {
@@ -49,6 +50,7 @@ export async function addMedia(queueId, { url, storagePath, type, duration }) {
     duration:    duration ?? null,
     productType: null,
     takenBy:     uid,
+    takenByName,
     takenAt:     serverTimestamp(),
   })
 

@@ -2,8 +2,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../firebase/firebase.js'
 
 /** Sign in with email + password */
@@ -52,4 +53,14 @@ export function subscribeAuthState(callback) {
 export async function getUserProfile(uid) {
   const snap = await getDoc(doc(db, 'users', uid))
   return snap.exists() ? { uid, ...snap.data() } : null
+}
+
+/**
+ * Update display name — อัปเดตทั้ง Firebase Auth และ Firestore users doc
+ */
+export async function updateDisplayName(displayName) {
+  const user = auth.currentUser
+  if (!user) throw new Error('Not authenticated')
+  await updateProfile(user, { displayName })
+  await updateDoc(doc(db, 'users', user.uid), { displayName })
 }
