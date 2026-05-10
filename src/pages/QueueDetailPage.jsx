@@ -454,16 +454,19 @@ function MediaCard({ item, index, onPreview, onTag, canEdit }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const { t } = useLang()
-  const [taggingPhoto,     setTaggingPhoto]     = useState(null)
-  const [previewIndex,     setPreviewIndex]     = useState(null)
-  const [showConfirmClose, setShowConfirmClose] = useState(false)
-  const [groupBy,          setGroupBy]          = useState(false)
+  const [taggingPhoto,      setTaggingPhoto]      = useState(null)
+  const [previewIndex,      setPreviewIndex]      = useState(null)
+  const [showConfirmClose,  setShowConfirmClose]  = useState(false)
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false)
+  const [showConfirmReopen, setShowConfirmReopen] = useState(false)
+  const [groupBy,           setGroupBy]           = useState(false)
 
-  const { media, loading, handleTag, handleDelete, handleClose } = useQueueDetail(queue)
+  const { media, loading, handleTag, handleDelete, handleClose, handleCancel, handleReopen } = useQueueDetail(queue)
   const { products } = useProducts()
 
   const isAdmin     = user?.role === 'admin'
-  const canEditItem = (item) => isAdmin || isToday(item.takenAt)
+  const isCancelled = queue?.status === 'cancelled'
+  const canEditItem = (item) => !isCancelled && (isAdmin || isToday(item.takenAt))
 
   const untaggedCount = media.filter(p => !p.productType).length
   const images        = media.filter(p => p.type === 'image')
@@ -482,6 +485,16 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
     await handleClose()
     setShowConfirmClose(false)
     onBack()
+  }
+
+  const handleCancelQueue = async () => {
+    await handleCancel()
+    setShowConfirmCancel(false)
+  }
+
+  const handleReopenQueue = async () => {
+    await handleReopen()
+    setShowConfirmReopen(false)
   }
 
   const handleTagFromPreview = (item) => {
@@ -519,17 +532,38 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {untaggedCount > 0 && (
+            {untaggedCount > 0 && !isCancelled && (
               <span className="bg-orange-50 text-orange-500 text-xs font-semibold px-2 py-1 rounded-full border border-orange-100">
                 {t.untaggedCount(untaggedCount)}
               </span>
             )}
+            {isCancelled && (
+              <span className="bg-red-50 text-red-400 text-xs font-semibold px-2 py-1 rounded-full border border-red-100">
+                {t.statusCancelled}
+              </span>
+            )}
             {queue?.status === 'open' && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setShowConfirmCancel(true)}
+                  className="text-xs font-semibold text-red-400 bg-red-50 px-3 py-1.5 rounded-xl active:bg-red-100 transition-colors"
+                >
+                  {t.cancelQueue}
+                </button>
+                <button
+                  onClick={() => setShowConfirmClose(true)}
+                  className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+                >
+                  {t.closeQueue}
+                </button>
+              </div>
+            )}
+            {queue?.status === 'closed' && (
               <button
-                onClick={() => setShowConfirmClose(true)}
-                className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+                onClick={() => setShowConfirmReopen(true)}
+                className="text-xs font-semibold text-blue-500 bg-blue-50 px-3 py-1.5 rounded-xl active:bg-blue-100 transition-colors"
               >
-                {t.closeQueue}
+                {t.reopenQueue}
               </button>
             )}
           </div>
@@ -579,6 +613,16 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           </div>
         )}
       </div>
+
+      {/* Cancelled banner */}
+      {isCancelled && (
+        <div className="bg-red-50 border-b border-red-100 px-4 py-2.5 flex items-center gap-2">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="flex-shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          <p className="text-xs text-red-500 font-medium">{t.cancelledBanner}</p>
+        </div>
+      )}
 
       {/* Media grid */}
       <div className="flex-1 overflow-y-auto p-3">
@@ -705,6 +749,66 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform"
               >
                 {t.confirmClose}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmReopen && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-3xl p-5 w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#3B82F6" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">{t.reopenQueueTitle}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{t.reopenQueueBody}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowConfirmReopen(false)}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              >
+                {t.cancel}
+              </button>
+              <button onClick={handleReopenQueue}
+                className="flex-1 bg-blue-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform"
+              >
+                {t.confirmReopen}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmCancel && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-3xl p-5 w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 bg-red-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">{t.cancelQueueTitle}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{t.cancelQueueBody}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowConfirmCancel(false)}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              >
+                {t.cancel}
+              </button>
+              <button onClick={handleCancelQueue}
+                className="flex-1 bg-red-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-red-200 active:scale-[0.98] transition-transform"
+              >
+                {t.confirmCancelQueue}
               </button>
             </div>
           </div>

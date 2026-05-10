@@ -18,8 +18,10 @@ export const translations = {
     filterAll: 'ทั้งหมด',
     filterOpen: 'กำลังดำเนินการ',
     filterClosed: 'เสร็จแล้ว',
+    filterCancelled: 'ยกเลิก',
     statusOpen: 'กำลังดำเนินการ',
     statusClosed: 'เสร็จแล้ว',
+    statusCancelled: 'ยกเลิก',
     noQueues: 'ไม่พบใบรับสินค้า',
     receiptNo: 'เลขที่',
 
@@ -42,6 +44,15 @@ export const translations = {
 
     // Queue Detail
     closeQueue: 'ปิดคิว',
+    cancelQueue: 'ยกเลิกคิว',
+    cancelQueueTitle: 'ยกเลิกคิวนี้?',
+    cancelQueueBody: 'คิวที่ยกเลิกจะไม่สามารถแก้ไขได้อีก ดูได้อย่างเดียว',
+    confirmCancelQueue: 'ยืนยันยกเลิก',
+    cancelledBanner: 'คิวนี้ถูกยกเลิกแล้ว — ดูได้อย่างเดียว',
+    reopenQueue: 'เปิดคิวอีกครั้ง',
+    reopenQueueTitle: 'เปิดคิวอีกครั้ง?',
+    reopenQueueBody: 'คิวนี้จะกลับเป็นสถานะ "กำลังดำเนินการ" และสามารถแก้ไขได้อีกครั้ง',
+    confirmReopen: 'ยืนยัน',
     untaggedCount: (n) => `${n} ยังไม่ระบุ`,
     totalPhotos: (n) => `${n} รูปทั้งหมด`,
     taggedCount: (n) => `${n} ระบุแล้ว`,
@@ -131,8 +142,10 @@ export const translations = {
     filterAll: 'All',
     filterOpen: 'In Progress',
     filterClosed: 'Completed',
+    filterCancelled: 'Cancelled',
     statusOpen: 'In Progress',
     statusClosed: 'Completed',
+    statusCancelled: 'Cancelled',
     noQueues: 'No receipts found',
     receiptNo: 'No.',
 
@@ -155,6 +168,15 @@ export const translations = {
 
     // Queue Detail
     closeQueue: 'Close',
+    cancelQueue: 'Cancel Queue',
+    cancelQueueTitle: 'Cancel this queue?',
+    cancelQueueBody: 'Cancelled queues cannot be edited. View only.',
+    confirmCancelQueue: 'Confirm Cancel',
+    cancelledBanner: 'This queue has been cancelled — view only',
+    reopenQueue: 'Reopen',
+    reopenQueueTitle: 'Reopen this queue?',
+    reopenQueueBody: 'The queue will return to "In Progress" and can be edited again.',
+    confirmReopen: 'Confirm',
     untaggedCount: (n) => `${n} untagged`,
     totalPhotos: (n) => `${n} total`,
     taggedCount: (n) => `${n} tagged`,

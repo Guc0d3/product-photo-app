@@ -102,6 +102,24 @@ export async function closeQueue(queueId) {
   })
 }
 
+/** Reopen a closed queue back to open */
+export async function reopenQueue(queueId) {
+  await updateDoc(doc(db, 'queues', queueId), {
+    status:    'open',
+    closedAt:  null,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/** Cancel a queue — read-only after this, no further edits allowed */
+export async function cancelQueue(queueId) {
+  await updateDoc(doc(db, 'queues', queueId), {
+    status:      'cancelled',
+    cancelledAt: serverTimestamp(),
+    updatedAt:   serverTimestamp(),
+  })
+}
+
 /** Generic field update (for photo counts, hasUntagged, etc.) */
 export async function updateQueue(queueId, fields) {
   await updateDoc(doc(db, 'queues', queueId), {

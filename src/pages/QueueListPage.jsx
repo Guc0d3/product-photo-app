@@ -292,11 +292,13 @@ function QueueItem({ queue, onSelect, onTogglePin }) {
             {/* Row 4: badges */}
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                queue.status === 'open'
-                  ? 'bg-[#DCFCE7] text-[#16A34A]'
-                  : 'bg-gray-100 text-gray-400'
+                queue.status === 'open'      ? 'bg-[#DCFCE7] text-[#16A34A]' :
+                queue.status === 'cancelled' ? 'bg-red-50 text-red-400' :
+                                               'bg-gray-100 text-gray-400'
               }`}>
-                {queue.status === 'open' ? t.statusOpen : t.statusClosed}
+                {queue.status === 'open'      ? t.statusOpen :
+                 queue.status === 'cancelled' ? t.statusCancelled :
+                                                t.statusClosed}
               </span>
               {queue.photoCount > 0 && (
                 <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
@@ -369,9 +371,10 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
   } = useQueueList()
 
   const TABS = [
-    ['all',    t.filterAll],
-    ['open',   t.filterOpen],
-    ['closed', t.filterClosed],
+    ['all',       t.filterAll],
+    ['open',      t.filterOpen],
+    ['closed',    t.filterClosed],
+    ['cancelled', t.filterCancelled],
   ]
 
   return (

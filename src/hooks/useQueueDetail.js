@@ -6,7 +6,7 @@ import {
   syncHasUntagged,
 } from '../services/mediaService.js'
 import { deleteStorageFile } from '../services/storageService.js'
-import { closeQueue } from '../services/queueService.js'
+import { closeQueue, cancelQueue, reopenQueue } from '../services/queueService.js'
 
 /**
  * Controller hook for the queue detail screen.
@@ -66,5 +66,23 @@ export function useQueueDetail(queue) {
     }
   }
 
-  return { media, loading, error, handleTag, handleDelete, handleClose }
+  const handleCancel = async () => {
+    try {
+      await cancelQueue(queue.id)
+    } catch (err) {
+      console.error('handleCancel:', err)
+      setError(err.message)
+    }
+  }
+
+  const handleReopen = async () => {
+    try {
+      await reopenQueue(queue.id)
+    } catch (err) {
+      console.error('handleReopen:', err)
+      setError(err.message)
+    }
+  }
+
+  return { media, loading, error, handleTag, handleDelete, handleClose, handleCancel, handleReopen }
 }

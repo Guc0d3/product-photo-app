@@ -78,8 +78,9 @@ export function useQueueList() {
       q.queueNumber?.includes(term)
     const matchFilter =
       filter === 'all' ||
-      (filter === 'open'   && q.status === 'open') ||
-      (filter === 'closed' && q.status === 'closed')
+      (filter === 'open'      && q.status === 'open') ||
+      (filter === 'closed'    && q.status === 'closed') ||
+      (filter === 'cancelled' && q.status === 'cancelled')
     return matchSearch && matchFilter
   })
 
