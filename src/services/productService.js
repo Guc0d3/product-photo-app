@@ -1,6 +1,13 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, writeBatch,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  writeBatch,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase/firebase.js'
@@ -10,10 +17,10 @@ import { db } from '../firebase/firebase.js'
 function toProduct(snap) {
   const d = snap.data()
   return {
-    id:        snap.id,
-    name:      d.name      ?? '',
-    order:     d.order     ?? 0,
-    active:    d.active    ?? true,
+    id: snap.id,
+    name: d.name ?? '',
+    order: d.order ?? 0,
+    active: d.active ?? true,
     createdAt: d.createdAt?.toDate() ?? null,
   }
 }
@@ -28,8 +35,11 @@ export function subscribeProducts(onData, onError) {
   const q = query(collection(db, 'products'), orderBy('order', 'asc'))
   return onSnapshot(
     q,
-    (snap) => onData(snap.docs.map(toProduct).filter(p => p.active)),
-    (err)  => { console.error('subscribeProducts:', err); onError?.(err) },
+    (snap) => onData(snap.docs.map(toProduct).filter((p) => p.active)),
+    (err) => {
+      console.error('subscribeProducts:', err)
+      onError?.(err)
+    },
   )
 }
 
@@ -38,8 +48,8 @@ export function subscribeProducts(onData, onError) {
 export async function addProduct(name) {
   return addDoc(collection(db, 'products'), {
     name,
-    order:     Date.now(),   // simple monotonic ordering
-    active:    true,
+    order: Date.now(), // simple monotonic ordering
+    active: true,
     createdAt: serverTimestamp(),
   })
 }
@@ -55,18 +65,14 @@ export async function deleteProduct(productId) {
 // ── seed (run once from admin to populate initial product types) ──────────────
 
 const DEFAULT_PRODUCTS = [
-  'เครื่องดื่ม',
-  'อาหารแห้ง',
-  'ขนม',
-  'ผลิตภัณฑ์ทำความสะอาด',
-  'สินค้าอุปโภค',
-  'เครื่องสำอาง',
-  'ยาและอาหารเสริม',
-  'เครื่องใช้ไฟฟ้า',
-  'เสื้อผ้า',
-  'เครื่องเขียน',
-  'ของเล่น',
-  'สินค้าเกษตร',
+  'ทองแดง',
+  'ทองเหลือง',
+  'อลูมิเนียม',
+  'สแตนเลส',
+  'สังกะสี (ซิ้ง, ซีโห้) / ตะกั่ว',
+  'หม้อน้ำ',
+  'แบตเตอรี่',
+  'อื่นๆ',
 ]
 
 /**
@@ -79,8 +85,8 @@ export async function seedProducts() {
     const ref = doc(collection(db, 'products'))
     batch.set(ref, {
       name,
-      order:     i,
-      active:    true,
+      order: i,
+      active: true,
       createdAt: serverTimestamp(),
     })
   })
