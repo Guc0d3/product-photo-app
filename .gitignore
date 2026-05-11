@@ -5,3 +5,5 @@ dist
 .claude
 .firebase
 *.log
+.DS_Store
+**/.DS_Store
