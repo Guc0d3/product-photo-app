@@ -4,7 +4,7 @@ import { useCamera } from '../hooks/useCamera.js'
 import { uploadMedia } from '../services/storageService.js'
 import { addMedia } from '../services/mediaService.js'
 
-export default function CameraPage({ queue, onBack, onPhotoTaken }) {
+export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const { t } = useLang()
 
   const [phase,        setPhase]        = useState('viewfinder') // 'viewfinder' | 'preview'
@@ -59,7 +59,7 @@ export default function CameraPage({ queue, onBack, onPhotoTaken }) {
     try {
       const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
       const { url, storagePath } = await uploadMedia(queue.id, capturedFile)
-      await addMedia(queue.id, { url, storagePath, type: mediaType })
+      await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch (err) {

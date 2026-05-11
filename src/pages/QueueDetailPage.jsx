@@ -26,6 +26,108 @@ function daysUntilExpiry(takenAt) {
   return Math.ceil((expiry - Date.now()) / 86400000)
 }
 
+// ── QC Status helpers ─────────────────────────────────────────────────────────
+
+function QcStatusIcon({ status, size = 18 }) {
+  const s = size
+  const inner = Math.round(s * 0.55)
+  if (status === 'passed') return (
+    <div className="rounded-full bg-green-500 flex items-center justify-center flex-shrink-0" style={{ width: s, height: s }}>
+      <svg width={inner} height={inner} fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+  )
+  if (status === 'failed') return (
+    <div className="rounded-full bg-red-500 flex items-center justify-center flex-shrink-0" style={{ width: s, height: s }}>
+      <svg width={inner} height={inner} fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+        <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </div>
+  )
+  return (
+    <div className="rounded-full bg-gray-400 flex items-center justify-center flex-shrink-0" style={{ width: s, height: s }}>
+      <svg width={inner} height={inner} fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+        <path strokeLinecap="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+  )
+}
+
+const QC_STATUS_BG = { passed: 'bg-green-500', failed: 'bg-red-500', pending: 'bg-gray-400' }
+
+// ── QC Status Modal ───────────────────────────────────────────────────────────
+function QcStatusModal({ photo, onClose, onSave }) {
+  const { t } = useLang()
+  const [selected, setSelected] = useState(photo.qcStatus || 'pending')
+  const [saving,   setSaving]   = useState(false)
+
+  const options = [
+    { value: 'pending', label: t.qcPending },
+    { value: 'passed',  label: t.qcPassed  },
+    { value: 'failed',  label: t.qcFailed  },
+  ]
+
+  const handleSave = async () => {
+    setSaving(true)
+    await onSave(selected)
+    onClose()
+  }
+
+  return (
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="pt-3 pb-2 flex flex-col items-center">
+          <div className="w-10 h-1 bg-gray-200 rounded-full"/>
+        </div>
+        <div className="px-5 pb-4 flex items-center gap-3">
+          {photo.url && (
+            <img src={photo.url} alt="media" className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm"/>
+          )}
+          <div>
+            <p className="text-sm font-bold text-gray-900">{t.selectQcStatus}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t.takenAt(formatTime(photo.takenAt))}</p>
+          </div>
+        </div>
+        <div className="px-4 pb-2 flex flex-col gap-2">
+          {options.map(opt => (
+            <button key={opt.value} onClick={() => setSelected(opt.value)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors ${
+                selected === opt.value ? 'bg-gray-50 ring-2 ring-gray-200' : 'hover:bg-gray-50'
+              }`}
+            >
+              <QcStatusIcon status={opt.value} size={22}/>
+              <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+              {selected === opt.value && (
+                <div className="ml-auto w-5 h-5 bg-[#06C755] rounded-full flex items-center justify-center">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="p-5 border-t border-gray-100">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-[#06C755] to-[#05B84C] text-white rounded-2xl py-3.5 font-semibold text-sm disabled:opacity-40 shadow-lg shadow-green-200 active:scale-[0.98] transition-all"
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
+                </svg>
+              </span>
+            ) : t.save}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Product Type Modal ────────────────────────────────────────────────────────
 function ProductTypeModal({ photo, productTypes, isAdmin, onClose, onSave }) {
   const { t } = useLang()
@@ -160,7 +262,7 @@ function ProductTypeModal({ photo, productTypes, isAdmin, onClose, onSave }) {
 }
 
 // ── Full-screen Preview ───────────────────────────────────────────────────────
-function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit }) {
+function FullPreview({ items, startIndex, onClose, onTagPhoto, onQcStatus, onDelete, canDelete, canEditProductType, canEditQcStatus }) {
   const { t } = useLang()
   const [index,         setIndex]         = useState(startIndex)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -171,16 +273,20 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
   const goPrev = useCallback(() => { if (index > 0) setIndex(i => i - 1) }, [index])
   const goNext = useCallback(() => { if (index < items.length - 1) setIndex(i => i + 1) }, [index, items.length])
 
+  const isQcItem        = current?.takenByRole === 'qc'
+  const canTagCurrent   = isQcItem ? canEditQcStatus(current) : canEditProductType(current)
+  const canDeleteCurrent = canDelete(current)
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'ArrowLeft')  goPrev()
       if (e.key === 'ArrowRight') goNext()
       if (e.key === 'Escape')  { if (confirmDelete) setConfirmDelete(false); else onClose() }
-      if (e.key === 'Delete' && canEdit) setConfirmDelete(true)
+      if (e.key === 'Delete' && canDeleteCurrent) setConfirmDelete(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [goPrev, goNext, onClose, confirmDelete, canEdit])
+  }, [goPrev, goNext, onClose, confirmDelete, canDeleteCurrent])
 
   const handleDelete = async () => {
     const remaining = items.length - 1
@@ -223,13 +329,16 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
         <span className="text-white/80 text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
           {index + 1} / {items.length}
         </span>
-        {canEdit ? (
-          <div className="flex items-center gap-2">
-            <button onClick={() => onTagPhoto(current)}
+        <div className="flex items-center gap-2">
+          {canTagCurrent && (
+            <button
+              onClick={() => isQcItem ? onQcStatus(current) : onTagPhoto(current)}
               className="bg-white/10 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full active:bg-white/20"
             >
-              {t.editType}
+              {isQcItem ? t.qcStatusLabel : t.editType}
             </button>
+          )}
+          {canDeleteCurrent && (
             <button onClick={() => setConfirmDelete(true)}
               className="w-9 h-9 bg-red-500/80 backdrop-blur-sm rounded-full flex items-center justify-center active:bg-red-600"
             >
@@ -237,14 +346,13 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
               </svg>
             </button>
-          </div>
-        ) : (
-          <div className="w-16"/>
-        )}
+          )}
+          {!canTagCurrent && !canDeleteCurrent && <div className="w-16"/>}
+        </div>
       </div>
 
       {/* Delete confirm */}
-      {confirmDelete && (
+      {confirmDelete && canDeleteCurrent && (
         <div className="absolute inset-0 z-20 flex items-center justify-center px-6 bg-black/60 backdrop-blur-sm"
           onClick={() => setConfirmDelete(false)}
         >
@@ -293,7 +401,16 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
           />
         )}
 
-        {/* Watermark — user who took the photo */}
+        {/* QC status — large centered watermark for QC media */}
+        {isQcItem && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="opacity-40">
+              <QcStatusIcon status={current.qcStatus || 'pending'} size={120}/>
+            </div>
+          </div>
+        )}
+
+        {/* Photographer watermark — bottom-right for all media */}
         {current.takenByName && (
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-lg px-2.5 py-1.5 pointer-events-none">
             <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" className="opacity-70 flex-shrink-0">
@@ -314,14 +431,16 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onDelete, canEdit
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1.5">{takenAtStr}</p>
-            {current.productType ? (
-              <span className="inline-flex items-center bg-[#06C755] text-white text-xs font-medium px-3 py-1 rounded-full">
-                {current.productType}
-              </span>
-            ) : (
-              <span className="inline-flex items-center bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-                {t.notTaggedFull}
-              </span>
+            {!isQcItem && (
+              current.productType ? (
+                <span className="inline-flex items-center bg-[#06C755] text-white text-xs font-medium px-3 py-1 rounded-full">
+                  {current.productType}
+                </span>
+              ) : (
+                <span className="inline-flex items-center bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                  {t.notTaggedFull}
+                </span>
+              )
             )}
             {expiryDays !== null && (
               <p className={`text-xs mt-1.5 ${expiryDays <= 3 ? 'text-red-400' : 'text-white/50'}`}>
@@ -427,13 +546,18 @@ function MediaCard({ item, index, onPreview, onTag, canEdit }) {
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/50 to-transparent rounded-b-2xl"/>
       </button>
 
-      {/* Product type badge / tag button */}
+      {/* Product type / QC status badge */}
       <button
-        onClick={() => canEdit ? onTag(item) : undefined}
+        onClick={() => onTag(item)}
         className="absolute bottom-0 left-0 right-0 px-1.5 pb-1.5"
         aria-label="tag"
       >
-        {item.productType ? (
+        {item.takenByRole === 'qc' ? (
+          /* QC media — show QC status badge */
+          <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded-full ${QC_STATUS_BG[item.qcStatus || 'pending']}`}>
+            <QcStatusIcon status={item.qcStatus || 'pending'} size={10}/>
+          </div>
+        ) : item.productType ? (
           <span className={`block text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate text-center ${
             canEdit ? 'bg-[#06C755]' : 'bg-[#06C755]/70'
           }`}>
@@ -455,20 +579,36 @@ function MediaCard({ item, index, onPreview, onTag, canEdit }) {
 export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const { t } = useLang()
   const [taggingPhoto,      setTaggingPhoto]      = useState(null)
+  const [taggingQcPhoto,    setTaggingQcPhoto]    = useState(null)
   const [previewIndex,      setPreviewIndex]      = useState(null)
   const [showConfirmClose,  setShowConfirmClose]  = useState(false)
   const [showConfirmCancel, setShowConfirmCancel] = useState(false)
   const [showConfirmReopen, setShowConfirmReopen] = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
 
-  const { media, loading, handleTag, handleDelete, handleClose, handleCancel, handleReopen } = useQueueDetail(queue)
+  const { media, loading, handleTag, handleQcStatus, handleDelete, handleClose, handleCancel, handleReopen } = useQueueDetail(queue)
   const { products } = useProducts()
 
   const isAdmin     = user?.role === 'admin'
+  const isQcUser    = user?.role === 'qc'
   const isCancelled = queue?.status === 'cancelled'
+
+  // Can change QC status: qc, audit, admin
+  const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
+
+  // Can edit product type: not QC media, not cancelled, admin or today
+  const canEditProductType = (item) =>
+    !isCancelled && item.takenByRole !== 'qc' && (isAdmin || isToday(item.takenAt))
+
+  // Can change QC status on a QC media item: not cancelled, authorized role
+  const canEditQcStatus = (item) =>
+    !isCancelled && item.takenByRole === 'qc' && canChangeQcStatus
+
+  // Can delete: not cancelled, admin or today
   const canEditItem = (item) => !isCancelled && (isAdmin || isToday(item.takenAt))
 
-  const untaggedCount = media.filter(p => !p.productType).length
+  // Only non-QC media count toward untagged
+  const untaggedCount = media.filter(p => p.takenByRole !== 'qc' && !p.productType).length
   const images        = media.filter(p => p.type === 'image')
   const videos        = media.filter(p => p.type === 'video')
 
@@ -497,10 +637,27 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
     setShowConfirmReopen(false)
   }
 
+  const handleSaveQcStatus = async (status) => {
+    if (!taggingQcPhoto) return
+    await handleQcStatus(taggingQcPhoto.id, status)
+  }
+
   const handleTagFromPreview = (item) => {
-    if (canEditItem(item)) {
-      setPreviewIndex(null)
-      setTimeout(() => setTaggingPhoto(item), 100)
+    setPreviewIndex(null)
+    setTimeout(() => setTaggingPhoto(item), 100)
+  }
+
+  const handleQcStatusFromPreview = (item) => {
+    setPreviewIndex(null)
+    setTimeout(() => setTaggingQcPhoto(item), 100)
+  }
+
+  // Unified tag handler: routes to correct modal based on item type
+  const handleTagItem = (item) => {
+    if (item.takenByRole === 'qc') {
+      if (canEditQcStatus(item)) setTaggingQcPhoto(item)
+    } else {
+      if (canEditProductType(item)) setTaggingPhoto(item)
     }
   }
 
@@ -544,12 +701,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
             )}
             {queue?.status === 'open' && (
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setShowConfirmCancel(true)}
-                  className="text-xs font-semibold text-red-400 bg-red-50 px-3 py-1.5 rounded-xl active:bg-red-100 transition-colors"
-                >
-                  {t.cancelQueue}
-                </button>
+                {!isQcUser && (
+                  <button
+                    onClick={() => setShowConfirmCancel(true)}
+                    className="text-xs font-semibold text-red-400 bg-red-50 px-3 py-1.5 rounded-xl active:bg-red-100 transition-colors"
+                  >
+                    {t.cancelQueue}
+                  </button>
+                )}
                 <button
                   onClick={() => setShowConfirmClose(true)}
                   className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
@@ -648,7 +807,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
             {media.map((item, i) => (
               <MediaCard key={item.id} item={item} index={i}
                 onPreview={setPreviewIndex}
-                onTag={setTaggingPhoto}
+                onTag={handleTagItem}
                 canEdit={canEditItem(item)}
               />
             ))}
@@ -667,7 +826,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {images.map(item => {
                     const idx = media.findIndex(m => m.id === item.id)
-                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
+                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={handleTagItem} canEdit={canEditItem(item)}/>
                   })}
                 </div>
               </div>
@@ -684,7 +843,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {videos.map(item => {
                     const idx = media.findIndex(m => m.id === item.id)
-                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={setTaggingPhoto} canEdit={canEditItem(item)}/>
+                    return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={handleTagItem} canEdit={canEditItem(item)}/>
                   })}
                 </div>
               </div>
@@ -714,8 +873,11 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
           onTagPhoto={handleTagFromPreview}
+          onQcStatus={handleQcStatusFromPreview}
           onDelete={handleDeleteFromPreview}
-          canEdit={canEditItem(media[previewIndex])}
+          canDelete={canEditItem}
+          canEditProductType={canEditProductType}
+          canEditQcStatus={canEditQcStatus}
         />
       )}
 
@@ -726,6 +888,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           isAdmin={isAdmin}
           onClose={() => setTaggingPhoto(null)}
           onSave={handleSaveTag}
+        />
+      )}
+
+      {taggingQcPhoto && (
+        <QcStatusModal
+          photo={taggingQcPhoto}
+          onClose={() => setTaggingQcPhoto(null)}
+          onSave={handleSaveQcStatus}
         />
       )}
 

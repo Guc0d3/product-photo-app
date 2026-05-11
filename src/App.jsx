@@ -105,7 +105,7 @@ export default function App() {
           <QueueDetailPage queue={selectedQueue} user={user} onBack={handleBackFromDetail} onCamera={handleOpenCamera} />
         )}
         {mobileScreen === 'camera' && (
-          <CameraPage queue={selectedQueue} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
         )}
       </div>
     )
@@ -125,7 +125,7 @@ export default function App() {
       </div>
       {showCamera && (
         <div className="absolute inset-0 z-50">
-          <CameraPage queue={selectedQueue} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
         </div>
       )}
     </div>

@@ -37,11 +37,14 @@ export function subscribeMedia(queueId, onData, onError) {
 
 /**
  * Add a media item to a queue and increment the relevant counter on the queue doc.
+ * role: the uploader's role — determines takenByRole and qcStatus initial value.
  */
-export async function addMedia(queueId, { url, storagePath, type, duration }) {
+export async function addMedia(queueId, { url, storagePath, type, duration, role }) {
   const uid         = auth.currentUser?.uid
   const takenByName = auth.currentUser?.displayName || auth.currentUser?.email || uid
   if (!uid) throw new Error('Not authenticated')
+
+  const isQc = role === 'qc'
 
   const ref = await addDoc(collection(db, 'queues', queueId, 'media'), {
     url,
@@ -49,18 +52,23 @@ export async function addMedia(queueId, { url, storagePath, type, duration }) {
     type,
     duration:    duration ?? null,
     productType: null,
+    qcStatus:    isQc ? 'pending' : null,
+    takenByRole: role ?? 'staff',
     takenBy:     uid,
     takenByName,
     takenAt:     serverTimestamp(),
   })
 
   const countField = type === 'video' ? 'videoCount' : 'photoCount'
-  await updateDoc(doc(db, 'queues', queueId), {
+  const queueUpdate = {
     [countField]: increment(1),
-    hasUntagged:  true,
     lastMediaAt:  serverTimestamp(),
     updatedAt:    serverTimestamp(),
-  })
+  }
+  // QC media has no product type — don't flip hasUntagged
+  if (!isQc) queueUpdate.hasUntagged = true
+
+  await updateDoc(doc(db, 'queues', queueId), queueUpdate)
 
   return ref.id
 }
@@ -70,6 +78,14 @@ export async function addMedia(queueId, { url, storagePath, type, duration }) {
  */
 export async function tagMedia(queueId, mediaId, productType) {
   await updateDoc(doc(db, 'queues', queueId, 'media', mediaId), { productType })
+}
+
+/**
+ * Update the QC status on a QC media item.
+ * status: 'pending' | 'passed' | 'failed'
+ */
+export async function updateQcStatus(queueId, mediaId, status) {
+  await updateDoc(doc(db, 'queues', queueId, 'media', mediaId), { qcStatus: status })
 }
 
 /**
@@ -87,8 +103,9 @@ export async function deleteMedia(queueId, mediaId, type) {
 
 /**
  * Sync the queue's hasUntagged flag based on the current in-memory media list.
+ * QC media (takenByRole === 'qc') are excluded — they use qcStatus, not productType.
  */
 export async function syncHasUntagged(queueId, mediaItems) {
-  const hasUntagged = mediaItems.some(m => !m.productType)
+  const hasUntagged = mediaItems.some(m => m.takenByRole !== 'qc' && !m.productType)
   await updateDoc(doc(db, 'queues', queueId), { hasUntagged, updatedAt: serverTimestamp() })
 }

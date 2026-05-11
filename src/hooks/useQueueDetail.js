@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   subscribeMedia,
   tagMedia,
+  updateQcStatus,
   deleteMedia,
   syncHasUntagged,
 } from '../services/mediaService.js'
@@ -66,6 +67,15 @@ export function useQueueDetail(queue) {
     }
   }
 
+  const handleQcStatus = async (mediaId, status) => {
+    try {
+      await updateQcStatus(queue.id, mediaId, status)
+    } catch (err) {
+      console.error('handleQcStatus:', err)
+      setError(err.message)
+    }
+  }
+
   const handleCancel = async () => {
     try {
       await cancelQueue(queue.id)
@@ -84,5 +94,5 @@ export function useQueueDetail(queue) {
     }
   }
 
-  return { media, loading, error, handleTag, handleDelete, handleClose, handleCancel, handleReopen }
+  return { media, loading, error, handleTag, handleQcStatus, handleDelete, handleClose, handleCancel, handleReopen }
 }

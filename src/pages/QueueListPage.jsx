@@ -77,11 +77,15 @@ function ProfileModal({ user, onClose, onLogout }) {
               </p>
               <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${
-                user?.role === 'admin'
-                  ? 'bg-purple-50 text-purple-500'
-                  : 'bg-[#F0FDF4] text-[#16A34A]'
+                user?.role === 'admin' ? 'bg-purple-50 text-purple-500'
+                : user?.role === 'qc'  ? 'bg-blue-50 text-blue-500'
+                : user?.role === 'audit' ? 'bg-orange-50 text-orange-500'
+                : 'bg-[#F0FDF4] text-[#16A34A]'
               }`}>
-                {user?.role === 'admin' ? 'Admin' : 'Staff'}
+                {user?.role === 'admin' ? 'Admin'
+                : user?.role === 'qc' ? 'QC'
+                : user?.role === 'audit' ? 'Audit'
+                : 'Staff'}
               </span>
             </div>
           </div>
@@ -390,14 +394,16 @@ export default function QueueListPage({ user, onSelectQueue, onLogout }) {
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="w-8 h-8 bg-[#06C755] rounded-xl flex items-center justify-center shadow-sm shadow-green-200 active:scale-90 transition-transform"
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2.5">
-                <path strokeLinecap="round" d="M12 5v14M5 12h14"/>
-              </svg>
-            </button>
+            {user?.role !== 'qc' && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="w-8 h-8 bg-[#06C755] rounded-xl flex items-center justify-center shadow-sm shadow-green-200 active:scale-90 transition-transform"
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2.5">
+                  <path strokeLinecap="round" d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
+            )}
             <button
               onClick={() => setShowProfile(true)}
               title="โปรไฟล์"

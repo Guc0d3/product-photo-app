@@ -118,6 +118,13 @@ export const translations = {
     networkError: 'ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต',
     unknownError: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
 
+    // QC Status
+    qcStatusLabel: 'สถานะ QC',
+    qcPending: 'ยังไม่ตรวจสอบ',
+    qcPassed: 'ตรวจสอบผ่าน',
+    qcFailed: 'ตรวจสอบไม่ผ่าน',
+    selectQcStatus: 'เลือกสถานะ QC',
+
     // Empty state
     selectQueueHint: 'เลือกใบรับสินค้า',
     selectQueueSubHint: 'เพื่อดูรูปภาพและวิดีโอ',
@@ -241,6 +248,13 @@ export const translations = {
     tooManyRequests: 'Too many attempts. Please wait a moment.',
     networkError: 'Connection failed. Check your internet.',
     unknownError: 'Something went wrong. Please try again.',
+
+    // QC Status
+    qcStatusLabel: 'QC Status',
+    qcPending: 'Pending',
+    qcPassed: 'Passed',
+    qcFailed: 'Failed',
+    selectQcStatus: 'Select QC Status',
 
     // Empty state
     selectQueueHint: 'Select a receipt',
