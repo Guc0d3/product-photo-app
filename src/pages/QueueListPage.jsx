@@ -36,7 +36,7 @@ const QUEUE_ALLOWED = /^[0-9.,\-+]*$/
 
 // ── ProfileModal ──────────────────────────────────────────────────────────────
 
-function ProfileModal({ user, onClose, onLogout }) {
+function ProfileModal({ user, onClose, onLogout, onExport }) {
   const { t } = useLang()
   const [name,   setName]   = useState(user?.displayName || '')
   const [saving, setSaving] = useState(false)
@@ -121,6 +121,19 @@ function ProfileModal({ user, onClose, onLogout }) {
                 </span>
               ) : 'บันทึก'}
             </button>
+
+            {user?.role === 'admin' && onExport && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onExport() }}
+                className="w-full flex items-center justify-center gap-2 bg-[#F0FDF4] text-[#16A34A] rounded-2xl py-3.5 text-sm font-semibold active:bg-[#DCFCE7] transition-colors"
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export ข้อมูลสำหรับเทรน AI
+              </button>
+            )}
 
             <button
               type="button"
@@ -394,18 +407,7 @@ export default function QueueListPage({ user, onSelectQueue, onLogout, onExport 
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
-            {user?.role === 'admin' && onExport && (
-              <button
-                onClick={onExport}
-                title="Export ข้อมูล"
-                className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center active:bg-gray-200 transition-colors"
-              >
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                </svg>
-              </button>
-            )}
-            {user?.role !== 'qc' && (
+{user?.role !== 'qc' && (
               <button
                 onClick={() => setShowModal(true)}
                 className="w-8 h-8 bg-[#06C755] rounded-xl flex items-center justify-center shadow-sm shadow-green-200 active:scale-90 transition-transform"
@@ -495,6 +497,7 @@ export default function QueueListPage({ user, onSelectQueue, onLogout, onExport 
           user={user}
           onClose={() => setShowProfile(false)}
           onLogout={onLogout}
+          onExport={onExport}
         />
       )}
     </div>

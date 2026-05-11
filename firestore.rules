@@ -54,6 +54,13 @@ service cloud.firestore {
       }
     }
 
+    // ── media collection group (for admin export query) ──────────────────────
+    // collectionGroup queries require a top-level rule separate from the
+    // subcollection rule inside /queues/{queueId}
+    match /{path=**}/media/{mediaId} {
+      allow read: if isAdmin();
+    }
+
     // ── products ──────────────────────────────────────────────────────────────
     match /products/{productId} {
       allow read: if isAuth();
