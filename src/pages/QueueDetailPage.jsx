@@ -599,6 +599,9 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const isQcUser    = user?.role === 'qc'
   const isCancelled = queue?.status === 'cancelled'
 
+  // Can close queue: admin or audit only
+  const canCloseQueue = isAdmin || user?.role === 'audit'
+
   // Can change QC status: qc, audit, admin
   const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
 
@@ -715,12 +718,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                     {t.cancelQueue}
                   </button>
                 )}
-                <button
-                  onClick={() => setShowConfirmClose(true)}
-                  className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
-                >
-                  {t.closeQueue}
-                </button>
+                {canCloseQueue && (
+                  <button
+                    onClick={() => setShowConfirmClose(true)}
+                    className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+                  >
+                    {t.closeQueue}
+                  </button>
+                )}
               </div>
             )}
             {queue?.status === 'closed' && (

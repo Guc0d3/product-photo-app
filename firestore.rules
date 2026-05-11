@@ -12,6 +12,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isAudit() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'audit';
+    }
+
+    function canCloseQueue() {
+      return isAdmin() || isAudit();
+    }
+
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
@@ -33,7 +42,13 @@ service cloud.firestore {
     match /queues/{queueId} {
       allow read: if isAuth();
       allow create: if isAuth();
-      allow update: if isAuth();
+      allow update: if isAuth() &&
+        // closing/reopening a queue requires admin or audit role
+        (
+          !('status' in request.resource.data) ||
+          request.resource.data.status == resource.data.status ||
+          canCloseQueue()
+        );
       allow delete: if isAdmin();
 
       // ── media subcollection ───────────────────────────────────────────────
