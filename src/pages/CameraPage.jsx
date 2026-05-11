@@ -58,7 +58,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setUploading(true)
     try {
       const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
-      const { url, storagePath } = await uploadMedia(queue.id, capturedFile)
+      const { url, storagePath } = await uploadMedia(capturedFile)
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()

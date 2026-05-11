@@ -2,13 +2,15 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { storage } from '../firebase/firebase.js'
 
 /**
- * Upload a File/Blob to Firebase Storage under media/{queueId}/.
+ * Upload a File/Blob to Firebase Storage.
+ * Path: media/[YYYY-MM-DD]/[filename]
  * Returns { url, storagePath }.
  */
-export async function uploadMedia(queueId, file) {
+export async function uploadMedia(file) {
   const ext      = file.name?.split('.').pop() || (file.type?.startsWith('video') ? 'mp4' : 'jpg')
   const filename = `${Date.now()}.${ext}`
-  const path     = `media/${queueId}/${filename}`
+  const yyyyMmDd = new Date().toISOString().slice(0, 10)   // e.g. "2025-05-11"
+  const path     = `media/${yyyyMmDd}/${filename}`
   const fileRef  = ref(storage, path)
 
   await uploadBytes(fileRef, file)

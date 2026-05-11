@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import QueueListPage from './pages/QueueListPage.jsx'
 import QueueDetailPage from './pages/QueueDetailPage.jsx'
 import CameraPage from './pages/CameraPage.jsx'
+import AdminExportPage from './pages/AdminExportPage.jsx'
 import { useLang } from './contexts/LangContext.jsx'
 import { useAuthContext } from './contexts/AuthContext.jsx'
 import { useAuth } from './hooks/useAuth.js'
@@ -49,6 +50,7 @@ export default function App() {
   const { handleLogout } = useAuth()
   const [selectedQueue, setSelectedQueue] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [showExport, setShowExport] = useState(false)
   const [mobileScreen, setMobileScreen] = useState('queueList')
   const isDesktop = useIsDesktop()
 
@@ -93,19 +95,30 @@ export default function App() {
     setShowCamera(false)
     if (!isDesktop) setMobileScreen('queueDetail')
   }
+  const handleOpenExport = () => {
+    if (isDesktop) setShowExport(true)
+    else setMobileScreen('export')
+  }
+  const handleBackFromExport = () => {
+    setShowExport(false)
+    if (!isDesktop) setMobileScreen('queueList')
+  }
 
   // ── Mobile ─────────────────────────────────────────────────────────────────
   if (!isDesktop) {
     return (
       <div className="h-[100dvh] flex flex-col overflow-hidden relative">
         {mobileScreen === 'queueList' && (
-          <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
+          <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} />
         )}
         {mobileScreen === 'queueDetail' && (
           <QueueDetailPage queue={selectedQueue} user={user} onBack={handleBackFromDetail} onCamera={handleOpenCamera} />
         )}
         {mobileScreen === 'camera' && (
           <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+        )}
+        {mobileScreen === 'export' && (
+          <AdminExportPage onBack={handleBackFromExport} />
         )}
       </div>
     )
@@ -115,7 +128,7 @@ export default function App() {
   return (
     <div className="h-[100dvh] flex overflow-hidden bg-[#F5F7FA] relative">
       <div className="w-80 xl:w-96 flex-shrink-0 flex flex-col border-r border-gray-200 overflow-hidden bg-white">
-        <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} />
+        <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         {selectedQueue
@@ -126,6 +139,11 @@ export default function App() {
       {showCamera && (
         <div className="absolute inset-0 z-50">
           <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+        </div>
+      )}
+      {showExport && (
+        <div className="absolute inset-0 z-50">
+          <AdminExportPage onBack={handleBackFromExport} />
         </div>
       )}
     </div>

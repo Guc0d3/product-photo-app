@@ -128,6 +128,21 @@ export const translations = {
     // Empty state
     selectQueueHint: 'เลือกใบรับสินค้า',
     selectQueueSubHint: 'เพื่อดูรูปภาพและวิดีโอ',
+
+    // Export
+    exportTitle: 'Export ข้อมูลสำหรับเทรน AI',
+    exportSelectMonth: 'เลือกเดือน',
+    exportStats: 'สรุปข้อมูล',
+    exportTotal: 'ทั้งหมด',
+    exportTagged: 'มี tag แล้ว',
+    exportUntagged: 'ยังไม่มี tag',
+    exportProductTypes: 'ชนิดสินค้า',
+    exportButton: 'เลือก Folder และ Export',
+    exportProgress: (done, total) => `กำลัง export ${done}/${total} ไฟล์...`,
+    exportDone: (n) => `Export เสร็จแล้ว ${n} ไฟล์`,
+    exportBrowserWarning: 'ฟีเจอร์นี้รองรับเฉพาะ Chrome และ Edge เท่านั้น',
+    exportLoading: 'กำลังโหลดข้อมูล...',
+    exportEmpty: 'ไม่มีข้อมูลในเดือนนี้',
   },
 
   en: {
@@ -259,5 +274,20 @@ export const translations = {
     // Empty state
     selectQueueHint: 'Select a receipt',
     selectQueueSubHint: 'to view its photos and videos',
+
+    // Export
+    exportTitle: 'Export Data for AI Training',
+    exportSelectMonth: 'Select Month',
+    exportStats: 'Summary',
+    exportTotal: 'Total',
+    exportTagged: 'Tagged',
+    exportUntagged: 'Untagged',
+    exportProductTypes: 'Product Types',
+    exportButton: 'Select Folder & Export',
+    exportProgress: (done, total) => `Exporting ${done}/${total} files...`,
+    exportDone: (n) => `Export complete: ${n} files`,
+    exportBrowserWarning: 'This feature requires Chrome or Edge',
+    exportLoading: 'Loading...',
+    exportEmpty: 'No data for this month',
   },
 }
