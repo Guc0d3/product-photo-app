@@ -1,7 +1,7 @@
 [
   {
     "origin": ["https://product-photo-app.web.app"],
-    "method": ["GET"],
+    "method": ["GET", "POST", "PUT", "DELETE"],
     "maxAgeSeconds": 3600
   }
 ]

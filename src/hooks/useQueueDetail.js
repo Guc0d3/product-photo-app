@@ -48,10 +48,18 @@ export function useQueueDetail(queue) {
     try {
       const item = media.find(m => m.id === mediaId)
       if (!item) return
-      if (item.storagePath) await deleteStorageFile(item.storagePath)
+
+      // 1. Delete Firestore doc first → onSnapshot fires → UI updates immediately
       await deleteMedia(queue.id, mediaId, item.type)
       const remaining = media.filter(m => m.id !== mediaId)
       await syncHasUntagged(queue.id, remaining)
+
+      // 2. Delete Storage file in background — CORS or network failures won't block UI
+      if (item.storagePath) {
+        deleteStorageFile(item.storagePath).catch(err =>
+          console.warn('Storage delete failed (non-blocking):', err)
+        )
+      }
     } catch (err) {
       console.error('handleDelete:', err)
       setError(err.message)
