@@ -266,7 +266,11 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onQcStatus, onDel
   const { t } = useLang()
   const [index,         setIndex]         = useState(startIndex)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [zoomed,        setZoomed]        = useState(false)
   const touchStartX = useRef(null)
+
+  // Reset zoom when navigating
+  useEffect(() => { setZoomed(false) }, [index])
 
   const current = items[index]
 
@@ -385,21 +389,27 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onQcStatus, onDel
       )}
 
       {/* Media viewer */}
-      <div className="flex-1 relative flex items-center justify-center bg-black">
-        {current.type === 'video' ? (
-          <video
-            src={current.url}
-            controls
-            playsInline
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <img
-            src={current.url}
-            alt={`media ${index + 1}`}
-            className="w-full h-full object-contain"
-          />
-        )}
+      <div className="flex-1 relative bg-black overflow-hidden">
+        {/* Padded container so image/video is fully visible behind overlays */}
+        <div className="absolute inset-0 flex items-center justify-center pt-20 pb-32">
+          {current.type === 'video' ? (
+            <video
+              src={current.url}
+              controls
+              playsInline
+              className="max-w-full max-h-full object-contain"
+            />
+          ) : (
+            <img
+              src={current.url}
+              alt={`media ${index + 1}`}
+              onClick={() => setZoomed(z => !z)}
+              className={`max-w-full max-h-full object-contain select-none transition-transform duration-200 ${
+                zoomed ? 'scale-[2.5] cursor-zoom-out' : 'cursor-zoom-in'
+              }`}
+            />
+          )}
+        </div>
 
         {/* QC status — large centered watermark for QC media */}
         {isQcItem && (
@@ -409,7 +419,6 @@ function FullPreview({ items, startIndex, onClose, onTagPhoto, onQcStatus, onDel
             </div>
           </div>
         )}
-
       </div>
 
       {/* Bottom info */}
