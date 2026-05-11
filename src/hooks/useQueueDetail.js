@@ -7,13 +7,13 @@ import {
   syncHasUntagged,
 } from '../services/mediaService.js'
 import { deleteStorageFile } from '../services/storageService.js'
-import { closeQueue, cancelQueue, reopenQueue } from '../services/queueService.js'
+import { firstApproveQueue, closeQueue, cancelQueue, reopenQueue } from '../services/queueService.js'
 
 /**
  * Controller hook for the queue detail screen.
  * Subscribes to the media subcollection in real-time; exposes action handlers.
  */
-export function useQueueDetail(queue) {
+export function useQueueDetail(queue, user) {
   const [media,   setMedia]   = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
@@ -66,9 +66,18 @@ export function useQueueDetail(queue) {
     }
   }
 
+  const handleFirstApproval = async () => {
+    try {
+      await firstApproveQueue(queue.id, user)
+    } catch (err) {
+      console.error('handleFirstApproval:', err)
+      setError(err.message)
+    }
+  }
+
   const handleClose = async () => {
     try {
-      await closeQueue(queue.id)
+      await closeQueue(queue.id, user)
     } catch (err) {
       console.error('handleClose:', err)
       setError(err.message)
@@ -102,5 +111,5 @@ export function useQueueDetail(queue) {
     }
   }
 
-  return { media, loading, error, handleTag, handleQcStatus, handleDelete, handleClose, handleCancel, handleReopen }
+  return { media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen }
 }

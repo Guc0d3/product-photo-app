@@ -587,20 +587,25 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [taggingPhoto,      setTaggingPhoto]      = useState(null)
   const [taggingQcPhoto,    setTaggingQcPhoto]    = useState(null)
   const [previewIndex,      setPreviewIndex]      = useState(null)
-  const [showConfirmClose,  setShowConfirmClose]  = useState(false)
-  const [showConfirmCancel, setShowConfirmCancel] = useState(false)
-  const [showConfirmReopen, setShowConfirmReopen] = useState(false)
+  const [showConfirmFirstApprove, setShowConfirmFirstApprove] = useState(false)
+  const [showConfirmClose,        setShowConfirmClose]        = useState(false)
+  const [showConfirmCancel,       setShowConfirmCancel]       = useState(false)
+  const [showConfirmReopen,       setShowConfirmReopen]       = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
 
-  const { media, loading, handleTag, handleQcStatus, handleDelete, handleClose, handleCancel, handleReopen } = useQueueDetail(queue)
+  const { media, loading, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
   const { products } = useProducts()
 
-  const isAdmin     = user?.role === 'admin'
-  const isQcUser    = user?.role === 'qc'
-  const isCancelled = queue?.status === 'cancelled'
+  const isAdmin        = user?.role === 'admin'
+  const isQcUser       = user?.role === 'qc'
+  const isCancelled    = queue?.status === 'cancelled'
+  const isPendingClose = queue?.status === 'pending_close'
 
   // Can close queue: admin or audit only
   const canCloseQueue = isAdmin || user?.role === 'audit'
+
+  // Is this user the one who did the first approval?
+  const isAlreadyFirstApprover = isPendingClose && queue?.firstApproval?.uid === user?.uid
 
   // Can change QC status: qc, audit, admin
   const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
@@ -628,6 +633,12 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
 
   const handleDeleteFromPreview = async (id) => {
     await handleDelete(id)
+  }
+
+  const handleFirstApproveQueue = async () => {
+    await handleFirstApproval()
+    setShowConfirmFirstApprove(false)
+    // Stay on page — queue is now pending_close, waiting for 2nd person
   }
 
   const handleCloseQueue = async () => {
@@ -720,11 +731,29 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 )}
                 {canCloseQueue && (
                   <button
-                    onClick={() => setShowConfirmClose(true)}
-                    className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+                    onClick={() => setShowConfirmFirstApprove(true)}
+                    className="text-xs font-semibold text-[#16A34A] bg-[#F0FDF4] px-3 py-1.5 rounded-xl active:bg-green-100 transition-colors"
                   >
-                    {t.closeQueue}
+                    {t.firstApproveQueue}
                   </button>
+                )}
+              </div>
+            )}
+            {isPendingClose && (
+              <div className="flex items-center gap-1.5">
+                {isAlreadyFirstApprover ? (
+                  <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                    {t.statusPendingClose}
+                  </span>
+                ) : (
+                  canCloseQueue && (
+                    <button
+                      onClick={() => setShowConfirmClose(true)}
+                      className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
+                    >
+                      {t.closeQueue}
+                    </button>
+                  )
                 )}
               </div>
             )}
@@ -791,6 +820,20 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
           <p className="text-xs text-red-500 font-medium">{t.cancelledBanner}</p>
+        </div>
+      )}
+
+      {/* Pending close banner — shows who did step 1 */}
+      {isPendingClose && queue?.firstApproval && (
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-2.5 flex items-center gap-2">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#D97706" strokeWidth="2" className="flex-shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p className="text-xs text-amber-700 font-medium">
+            {t.pendingCloseBy(queue.firstApproval.displayName)}
+            {' · '}
+            {isAlreadyFirstApprover ? t.alreadyApproved : 'รอการยืนยันขั้นที่ 2'}
+          </p>
         </div>
       )}
 
@@ -910,14 +953,52 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
         />
       )}
 
+      {/* First Approval confirm modal (step 1/2) */}
+      {showConfirmFirstApprove && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-3xl p-5 w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 bg-[#F0FDF4] rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#16A34A" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">{t.firstApproveTitle}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{t.firstApproveBody}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowConfirmFirstApprove(false)}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              >
+                {t.cancel}
+              </button>
+              <button onClick={handleFirstApproveQueue}
+                className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform"
+              >
+                {t.confirmFirstApprove}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close Queue confirm modal (step 2/2 or fallback) */}
       {showConfirmClose && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-6">
           <div className="bg-white rounded-3xl p-5 w-full shadow-2xl">
-            <h3 className="font-bold text-gray-900 text-base">{t.closeQueueTitle}</h3>
+            <h3 className="font-bold text-gray-900 text-base">
+              {isPendingClose ? t.closeQueueStep2Title : t.closeQueueTitle}
+            </h3>
             <p className="text-sm text-gray-500 mt-1.5">
-              {untaggedCount > 0 ? t.closeQueueBodyUntagged(untaggedCount) : t.closeQueueBody}
+              {isPendingClose && queue?.firstApproval
+                ? t.closeQueueStep2Body(queue.firstApproval.displayName)
+                : untaggedCount > 0
+                  ? t.closeQueueBodyUntagged(untaggedCount)
+                  : t.closeQueueBody}
             </p>
-            {untaggedCount > 0 && (
+            {!isPendingClose && untaggedCount > 0 && (
               <p className="text-xs text-orange-400 mt-1">{t.closeQueueHint(isAdmin)}</p>
             )}
             <div className="flex gap-2 mt-4">

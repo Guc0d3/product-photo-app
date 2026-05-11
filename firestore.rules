@@ -43,11 +43,31 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isAuth();
       allow update: if isAuth() &&
-        // closing/reopening a queue requires admin or audit role
         (
+          // no status change — always allowed for auth users
           !('status' in request.resource.data) ||
           request.resource.data.status == resource.data.status ||
-          canCloseQueue()
+
+          // step 1: open → pending_close (admin or audit, one person)
+          (canCloseQueue() &&
+           resource.data.status == 'open' &&
+           request.resource.data.status == 'pending_close') ||
+
+          // step 2: pending_close → closed (admin or audit, DIFFERENT person)
+          (canCloseQueue() &&
+           resource.data.status == 'pending_close' &&
+           request.resource.data.status == 'closed' &&
+           resource.data.firstApproval.uid != request.auth.uid) ||
+
+          // reopen: closed → open (admin or audit)
+          (canCloseQueue() &&
+           resource.data.status == 'closed' &&
+           request.resource.data.status == 'open') ||
+
+          // cancel: open → cancelled (any authenticated user)
+          (isAuth() &&
+           resource.data.status == 'open' &&
+           request.resource.data.status == 'cancelled')
         );
       allow delete: if isAdmin();
 

@@ -25,6 +25,14 @@ function toQueue(snap) {
     updatedAt:   d.updatedAt?.toDate()   ?? null,
     lastMediaAt: d.lastMediaAt?.toDate() ?? null,
     closedAt:    d.closedAt?.toDate()    ?? null,
+    firstApproval: d.firstApproval ? {
+      ...d.firstApproval,
+      approvedAt: d.firstApproval.approvedAt?.toDate() ?? null,
+    } : null,
+    closedBy: d.closedBy ? {
+      ...d.closedBy,
+      closedAt: d.closedBy.closedAt?.toDate() ?? null,
+    } : null,
   }
 }
 
@@ -93,21 +101,49 @@ export async function togglePin(queueId, pinned) {
   })
 }
 
-/** Close a queue */
-export async function closeQueue(queueId) {
+/**
+ * First approval: open → pending_close.
+ * Requires a second person to call closeQueue to fully close.
+ */
+export async function firstApproveQueue(queueId, user) {
   await updateDoc(doc(db, 'queues', queueId), {
-    status:    'closed',
+    status: 'pending_close',
+    firstApproval: {
+      uid:         user.uid,
+      displayName: user.displayName || user.email || 'ไม่ระบุ',
+      role:        user.role,
+      approvedAt:  serverTimestamp(),
+    },
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Second approval: pending_close → closed.
+ * Must be called by a different person than firstApproveQueue.
+ */
+export async function closeQueue(queueId, user) {
+  await updateDoc(doc(db, 'queues', queueId), {
+    status: 'closed',
+    closedBy: {
+      uid:         user.uid,
+      displayName: user.displayName || user.email || 'ไม่ระบุ',
+      role:        user.role,
+      closedAt:    serverTimestamp(),
+    },
     closedAt:  serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
 }
 
-/** Reopen a closed queue back to open */
+/** Reopen a closed queue back to open — clears approval records */
 export async function reopenQueue(queueId) {
   await updateDoc(doc(db, 'queues', queueId), {
-    status:    'open',
-    closedAt:  null,
-    updatedAt: serverTimestamp(),
+    status:        'open',
+    closedAt:      null,
+    firstApproval: null,
+    closedBy:      null,
+    updatedAt:     serverTimestamp(),
   })
 }
 
