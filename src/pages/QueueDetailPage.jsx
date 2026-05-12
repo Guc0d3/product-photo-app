@@ -70,8 +70,9 @@ function QcStatusModal({ photo, onClose, onSave }) {
 
   const handleSave = async () => {
     setSaving(true)
-    await onSave(selected)
-    onClose()
+    const ok = await onSave(selected)
+    setSaving(false)
+    if (ok) onClose()
   }
 
   return (
@@ -149,8 +150,9 @@ function ProductTypeModal({ photo, productTypes, isAdmin, onClose, onSave }) {
   const handleSave = async () => {
     if (!selected) return
     setSaving(true)
-    await onSave(selected)
-    onClose()
+    const ok = await onSave(selected)
+    setSaving(false)
+    if (ok) onClose()
   }
 
   return (
@@ -639,8 +641,8 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const videos        = media.filter(p => p.type === 'video')
 
   const handleSaveTag = async (productType) => {
-    if (!taggingPhoto) return
-    await handleTag(taggingPhoto.id, productType)
+    if (!taggingPhoto) return false
+    return await handleTag(taggingPhoto.id, productType)
   }
 
   const handleDeleteFromPreview = async (id) => {
@@ -680,8 +682,8 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   }
 
   const handleSaveQcStatus = async (status) => {
-    if (!taggingQcPhoto) return
-    await handleQcStatus(taggingQcPhoto.id, status)
+    if (!taggingQcPhoto) return false
+    return await handleQcStatus(taggingQcPhoto.id, status)
   }
 
   const handleTagFromPreview = (item) => {

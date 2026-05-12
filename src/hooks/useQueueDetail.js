@@ -47,9 +47,11 @@ export function useQueueDetail(queue, user) {
       // Compute updated list optimistically to sync the hasUntagged flag
       const updated = media.map(m => m.id === mediaId ? { ...m, productType } : m)
       await syncHasUntagged(queue.id, updated)
+      return true
     } catch (err) {
       console.error('handleTag:', err)
       setError(err.message)
+      return false
     }
   }
 
