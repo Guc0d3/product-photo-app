@@ -22,6 +22,7 @@ export function useQueueDetail(queue, user) {
   // ── subscribe to queue document (status, firstApproval, etc.) ──────────
   useEffect(() => {
     if (!queue?.id) return
+    setLiveQueue(queue)   // reset immediately so stale data from previous queue doesn't flash
     const unsubscribe = subscribeQueue(queue.id, setLiveQueue)
     return () => unsubscribe()
   }, [queue?.id])

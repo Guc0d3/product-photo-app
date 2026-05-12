@@ -591,9 +591,10 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [showConfirmClose,        setShowConfirmClose]        = useState(false)
   const [showConfirmCancel,       setShowConfirmCancel]       = useState(false)
   const [showConfirmReopen,       setShowConfirmReopen]       = useState(false)
+  const [submitting,        setSubmitting]        = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
 
-  const { liveQueue, media, loading, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
+  const { liveQueue, media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
 
   // Use live Firestore data for mutable fields (status, firstApproval, etc.)
   // Fall back to prop for stable fields (id, code, supplier, queueNumber)
@@ -640,24 +641,35 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   }
 
   const handleFirstApproveQueue = async () => {
+    if (submitting) return
+    setSubmitting(true)
     await handleFirstApproval()
+    setSubmitting(false)
     setShowConfirmFirstApprove(false)
-    // Stay on page — queue is now pending_close, waiting for 2nd person
   }
 
   const handleCloseQueue = async () => {
+    if (submitting) return
+    setSubmitting(true)
     await handleClose()
+    setSubmitting(false)
     setShowConfirmClose(false)
     onBack()
   }
 
   const handleCancelQueue = async () => {
+    if (submitting) return
+    setSubmitting(true)
     await handleCancel()
+    setSubmitting(false)
     setShowConfirmCancel(false)
   }
 
   const handleReopenQueue = async () => {
+    if (submitting) return
+    setSubmitting(true)
     await handleReopen()
+    setSubmitting(false)
     setShowConfirmReopen(false)
   }
 
@@ -834,7 +846,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <p className="text-xs text-amber-700 font-medium">
-            {t.pendingCloseBy(queue.firstApproval.displayName)}
+            {t.pendingCloseBy(q?.firstApproval?.displayName ?? '...')}
             {' · '}
             {isAlreadyFirstApprover ? t.alreadyApproved : 'รอการยืนยันขั้นที่ 2'}
           </p>
@@ -957,6 +969,16 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
         />
       )}
 
+      {/* Error toast */}
+      {error && (
+        <div className="absolute top-24 left-4 right-4 z-[60] bg-red-500 text-white text-xs font-medium px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" className="flex-shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          {error}
+        </div>
+      )}
+
       {/* First Approval confirm modal (step 1/2) */}
       {showConfirmFirstApprove && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-6">
@@ -973,15 +995,17 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowConfirmFirstApprove(false)}
-                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              <button onClick={() => setShowConfirmFirstApprove(false)} disabled={submitting}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200 disabled:opacity-40"
               >
                 {t.cancel}
               </button>
-              <button onClick={handleFirstApproveQueue}
-                className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform"
+              <button onClick={handleFirstApproveQueue} disabled={submitting}
+                className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform disabled:opacity-40"
               >
-                {t.confirmFirstApprove}
+                {submitting
+                  ? <span className="flex items-center justify-center gap-2"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/></svg></span>
+                  : t.confirmFirstApprove}
               </button>
             </div>
           </div>
@@ -997,7 +1021,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
             </h3>
             <p className="text-sm text-gray-500 mt-1.5">
               {isPendingClose && q?.firstApproval
-                ? t.closeQueueStep2Body(queue.firstApproval.displayName)
+                ? t.closeQueueStep2Body(q?.firstApproval?.displayName ?? '...')
                 : untaggedCount > 0
                   ? t.closeQueueBodyUntagged(untaggedCount)
                   : t.closeQueueBody}
@@ -1006,15 +1030,17 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               <p className="text-xs text-orange-400 mt-1">{t.closeQueueHint(isAdmin)}</p>
             )}
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowConfirmClose(false)}
-                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              <button onClick={() => setShowConfirmClose(false)} disabled={submitting}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200 disabled:opacity-40"
               >
                 {t.cancel}
               </button>
-              <button onClick={handleCloseQueue}
-                className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform"
+              <button onClick={handleCloseQueue} disabled={submitting}
+                className="flex-1 bg-[#06C755] text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform disabled:opacity-40"
               >
-                {t.confirmClose}
+                {submitting
+                  ? <span className="flex items-center justify-center gap-2"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/></svg></span>
+                  : t.confirmClose}
               </button>
             </div>
           </div>
@@ -1036,15 +1062,17 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowConfirmReopen(false)}
-                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              <button onClick={() => setShowConfirmReopen(false)} disabled={submitting}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200 disabled:opacity-40"
               >
                 {t.cancel}
               </button>
-              <button onClick={handleReopenQueue}
-                className="flex-1 bg-blue-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform"
+              <button onClick={handleReopenQueue} disabled={submitting}
+                className="flex-1 bg-blue-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform disabled:opacity-40"
               >
-                {t.confirmReopen}
+                {submitting
+                  ? <span className="flex items-center justify-center gap-2"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/></svg></span>
+                  : t.confirmReopen}
               </button>
             </div>
           </div>
@@ -1066,15 +1094,17 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowConfirmCancel(false)}
-                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200"
+              <button onClick={() => setShowConfirmCancel(false)} disabled={submitting}
+                className="flex-1 bg-gray-100 rounded-2xl py-3 text-sm font-medium text-gray-700 active:bg-gray-200 disabled:opacity-40"
               >
                 {t.cancel}
               </button>
-              <button onClick={handleCancelQueue}
-                className="flex-1 bg-red-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-red-200 active:scale-[0.98] transition-transform"
+              <button onClick={handleCancelQueue} disabled={submitting}
+                className="flex-1 bg-red-500 text-white rounded-2xl py-3 text-sm font-semibold shadow-lg shadow-red-200 active:scale-[0.98] transition-transform disabled:opacity-40"
               >
-                {t.confirmCancelQueue}
+                {submitting
+                  ? <span className="flex items-center justify-center gap-2"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/></svg></span>
+                  : t.confirmCancelQueue}
               </button>
             </div>
           </div>
