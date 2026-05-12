@@ -7,18 +7,26 @@ import {
   syncHasUntagged,
 } from '../services/mediaService.js'
 import { deleteStorageFile } from '../services/storageService.js'
-import { firstApproveQueue, closeQueue, cancelQueue, reopenQueue } from '../services/queueService.js'
+import { firstApproveQueue, closeQueue, cancelQueue, reopenQueue, subscribeQueue } from '../services/queueService.js'
 
 /**
  * Controller hook for the queue detail screen.
- * Subscribes to the media subcollection in real-time; exposes action handlers.
+ * Subscribes to the queue doc + media subcollection in real-time; exposes action handlers.
  */
 export function useQueueDetail(queue, user) {
-  const [media,   setMedia]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState(null)
+  const [liveQueue, setLiveQueue] = useState(queue)
+  const [media,     setMedia]     = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
 
-  // ── real-time subscription ──────────────────────────────────────────────
+  // ── subscribe to queue document (status, firstApproval, etc.) ──────────
+  useEffect(() => {
+    if (!queue?.id) return
+    const unsubscribe = subscribeQueue(queue.id, setLiveQueue)
+    return () => unsubscribe()
+  }, [queue?.id])
+
+  // ── subscribe to media subcollection ────────────────────────────────────
   useEffect(() => {
     if (!queue?.id) return
     setLoading(true)
@@ -111,5 +119,5 @@ export function useQueueDetail(queue, user) {
     }
   }
 
-  return { media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen }
+  return { liveQueue, media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen }
 }

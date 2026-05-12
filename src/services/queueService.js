@@ -39,6 +39,18 @@ function toQueue(snap) {
 // ── read ──────────────────────────────────────────────────────────────────────
 
 /**
+ * Realtime subscription to a single queue document.
+ * Returns unsubscribe function.
+ */
+export function subscribeQueue(queueId, onData, onError) {
+  return onSnapshot(
+    doc(db, 'queues', queueId),
+    (snap) => { if (snap.exists()) onData(toQueue(snap)) },
+    (err)  => { console.error('subscribeQueue:', err); onError?.(err) },
+  )
+}
+
+/**
  * Realtime subscription to all queues, ordered by createdAt desc.
  * Returns unsubscribe function.
  */

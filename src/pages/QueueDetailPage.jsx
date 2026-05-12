@@ -593,19 +593,23 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [showConfirmReopen,       setShowConfirmReopen]       = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
 
-  const { media, loading, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
+  const { liveQueue, media, loading, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
+
+  // Use live Firestore data for mutable fields (status, firstApproval, etc.)
+  // Fall back to prop for stable fields (id, code, supplier, queueNumber)
+  const q = liveQueue ?? queue
   const { products } = useProducts()
 
   const isAdmin        = user?.role === 'admin'
   const isQcUser       = user?.role === 'qc'
-  const isCancelled    = queue?.status === 'cancelled'
-  const isPendingClose = queue?.status === 'pending_close'
+  const isCancelled    = q?.status === 'cancelled'
+  const isPendingClose = q?.status === 'pending_close'
 
   // Can close queue: admin or audit only
   const canCloseQueue = isAdmin || user?.role === 'audit'
 
   // Is this user the one who did the first approval?
-  const isAlreadyFirstApprover = isPendingClose && queue?.firstApproval?.uid === user?.uid
+  const isAlreadyFirstApprover = isPendingClose && q?.firstApproval?.uid === user?.uid
 
   // Can change QC status: qc, audit, admin
   const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
@@ -719,7 +723,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 {t.statusCancelled}
               </span>
             )}
-            {queue?.status === 'open' && (
+            {q?.status === 'open' && (
               <div className="flex items-center gap-1.5">
                 {!isQcUser && (
                   <button
@@ -757,7 +761,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 )}
               </div>
             )}
-            {queue?.status === 'closed' && (
+            {q?.status === 'closed' && (
               <button
                 onClick={() => setShowConfirmReopen(true)}
                 className="text-xs font-semibold text-blue-500 bg-blue-50 px-3 py-1.5 rounded-xl active:bg-blue-100 transition-colors"
@@ -824,7 +828,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
       )}
 
       {/* Pending close banner — shows who did step 1 */}
-      {isPendingClose && queue?.firstApproval && (
+      {isPendingClose && q?.firstApproval && (
         <div className="bg-amber-50 border-b border-amber-100 px-4 py-2.5 flex items-center gap-2">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#D97706" strokeWidth="2" className="flex-shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -907,7 +911,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
       </div>
 
       {/* Camera FAB — only for open queues */}
-      {queue?.status === 'open' && (
+      {q?.status === 'open' && (
         <div className="absolute bottom-6 right-5">
           <button onClick={onCamera}
             className="w-[60px] h-[60px] bg-[#06C755] rounded-[18px] shadow-xl shadow-green-200 flex items-center justify-center active:scale-90 transition-transform"
@@ -992,7 +996,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               {isPendingClose ? t.closeQueueStep2Title : t.closeQueueTitle}
             </h3>
             <p className="text-sm text-gray-500 mt-1.5">
-              {isPendingClose && queue?.firstApproval
+              {isPendingClose && q?.firstApproval
                 ? t.closeQueueStep2Body(queue.firstApproval.displayName)
                 : untaggedCount > 0
                   ? t.closeQueueBodyUntagged(untaggedCount)
