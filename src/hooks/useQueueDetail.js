@@ -78,47 +78,59 @@ export function useQueueDetail(queue, user) {
   const handleFirstApproval = async () => {
     try {
       await firstApproveQueue(queue.id, user)
+      return true
     } catch (err) {
       console.error('handleFirstApproval:', err)
       setError(err.message)
+      return false
     }
   }
 
   const handleClose = async () => {
     try {
       await closeQueue(queue.id, user)
+      return true
     } catch (err) {
       console.error('handleClose:', err)
       setError(err.message)
+      return false
     }
   }
 
   const handleQcStatus = async (mediaId, status) => {
     try {
       await updateQcStatus(queue.id, mediaId, status)
+      return true
     } catch (err) {
       console.error('handleQcStatus:', err)
       setError(err.message)
+      return false
     }
   }
 
   const handleCancel = async () => {
     try {
       await cancelQueue(queue.id)
+      return true
     } catch (err) {
       console.error('handleCancel:', err)
       setError(err.message)
+      return false
     }
   }
 
   const handleReopen = async () => {
     try {
       await reopenQueue(queue.id)
+      return true
     } catch (err) {
       console.error('handleReopen:', err)
       setError(err.message)
+      return false
     }
   }
 
-  return { liveQueue, media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen }
+  const clearError = () => setError(null)
+
+  return { liveQueue, media, loading, error, clearError, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen }
 }

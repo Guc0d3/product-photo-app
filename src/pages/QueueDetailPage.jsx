@@ -594,7 +594,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [submitting,        setSubmitting]        = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
 
-  const { liveQueue, media, loading, error, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
+  const { liveQueue, media, loading, error, clearError, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
+
+  // Auto-dismiss error toast after 4 s
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(clearError, 4000)
+    return () => clearTimeout(t)
+  }, [error])
 
   // Use live Firestore data for mutable fields (status, firstApproval, etc.)
   // Fall back to prop for stable fields (id, code, supplier, queueNumber)
@@ -642,35 +649,34 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
 
   const handleFirstApproveQueue = async () => {
     if (submitting) return
-    setSubmitting(true)
-    await handleFirstApproval()
+    clearError(); setSubmitting(true)
+    const ok = await handleFirstApproval()
     setSubmitting(false)
-    setShowConfirmFirstApprove(false)
+    if (ok) setShowConfirmFirstApprove(false)
   }
 
   const handleCloseQueue = async () => {
     if (submitting) return
-    setSubmitting(true)
-    await handleClose()
+    clearError(); setSubmitting(true)
+    const ok = await handleClose()
     setSubmitting(false)
-    setShowConfirmClose(false)
-    onBack()
+    if (ok) { setShowConfirmClose(false); onBack() }
   }
 
   const handleCancelQueue = async () => {
     if (submitting) return
-    setSubmitting(true)
-    await handleCancel()
+    clearError(); setSubmitting(true)
+    const ok = await handleCancel()
     setSubmitting(false)
-    setShowConfirmCancel(false)
+    if (ok) setShowConfirmCancel(false)
   }
 
   const handleReopenQueue = async () => {
     if (submitting) return
-    setSubmitting(true)
-    await handleReopen()
+    clearError(); setSubmitting(true)
+    const ok = await handleReopen()
     setSubmitting(false)
-    setShowConfirmReopen(false)
+    if (ok) setShowConfirmReopen(false)
   }
 
   const handleSaveQcStatus = async (status) => {
@@ -969,13 +975,18 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
         />
       )}
 
-      {/* Error toast */}
+      {/* Error toast — auto-dismisses after 4 s */}
       {error && (
         <div className="absolute top-24 left-4 right-4 z-[60] bg-red-500 text-white text-xs font-medium px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" className="flex-shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          {error}
+          <span className="flex-1">{error}</span>
+          <button onClick={clearError} className="ml-1 flex-shrink-0 opacity-80 active:opacity-100">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2.5">
+              <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
       )}
 
