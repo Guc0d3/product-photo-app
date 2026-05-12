@@ -76,8 +76,9 @@ service cloud.firestore {
         allow read: if isAuth();
         allow create: if isAuth();
 
-        // staff: edit own media taken today | admin: edit all
+        // admin: edit all | audit: update qcStatus only | staff: edit own media taken today
         allow update: if isAdmin() ||
+          isAudit() ||
           (isAuth() &&
            resource.data.takenBy == request.auth.uid &&
            isToday(resource.data.takenAt));
