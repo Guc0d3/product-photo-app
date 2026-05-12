@@ -137,7 +137,7 @@ export default function App() {
         }
       </div>
       {showCamera && (
-        <div className="absolute inset-0 z-50">
+        <div className="absolute inset-0 z-50 flex flex-col">
           <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
         </div>
       )}
