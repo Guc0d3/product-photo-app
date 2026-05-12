@@ -751,7 +751,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                       onClick={() => setShowConfirmClose(true)}
                       className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl active:bg-gray-200 transition-colors"
                     >
-                      {t.closeQueue}
+                      {t.statusPendingClose}
                     </button>
                   )
                 )}
