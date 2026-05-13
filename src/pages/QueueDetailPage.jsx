@@ -22,6 +22,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const [showConfirmReopen,       setShowConfirmReopen]       = useState(false)
   const [submitting,        setSubmitting]        = useState(false)
   const [groupBy,           setGroupBy]           = useState(false)
+  const [sortAsc,           setSortAsc]           = useState(false)
 
   const { liveQueue, media, loading, error, clearError, handleTag, handleQcStatus, handleDelete, handleFirstApproval, handleClose, handleCancel, handleReopen } = useQueueDetail(queue, user)
 
@@ -50,9 +51,14 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
 
   const canEditItem = (item) => !isCancelled && (isAdmin || isToday(item.takenAt))
 
-  const untaggedCount = media.filter(p => p.takenByRole !== 'qc' && !p.productType).length
-  const images        = media.filter(p => p.type === 'image')
-  const videos        = media.filter(p => p.type === 'video')
+  const sortedMedia   = [...media].sort((a, b) => {
+    const ta = a.takenAt?.getTime?.() ?? 0
+    const tb = b.takenAt?.getTime?.() ?? 0
+    return sortAsc ? ta - tb : tb - ta
+  })
+  const untaggedCount = sortedMedia.filter(p => p.takenByRole !== 'qc' && !p.productType).length
+  const images        = sortedMedia.filter(p => p.type === 'image')
+  const videos        = sortedMedia.filter(p => p.type === 'video')
 
   const handleSaveTag = async (productType) => {
     if (!taggingPhoto) return false
@@ -226,14 +232,29 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setGroupBy(g => !g)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors ${
-              groupBy ? 'bg-[#06C755] text-white' : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {t.groupByType}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSortAsc(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors bg-gray-100 text-gray-500"
+            >
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                {sortAsc ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9M3 12h5m10 4l-4-4m4 4l4-4"/>
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9M3 12h5m10 0l-4 4m4-4l4 4"/>
+                )}
+              </svg>
+              {sortAsc ? 'เก่า→ใหม่' : 'ใหม่→เก่า'}
+            </button>
+            <button
+              onClick={() => setGroupBy(g => !g)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors ${
+                groupBy ? 'bg-[#06C755] text-white' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {t.groupByType}
+            </button>
+          </div>
         </div>
 
         {!isAdmin && (
@@ -289,7 +310,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           </div>
         ) : !groupBy ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-            {media.map((item, i) => (
+            {sortedMedia.map((item, i) => (
               <MediaCard key={item.id} item={item} index={i}
                 onPreview={setPreviewIndex}
                 onTag={handleTagItem}
@@ -310,7 +331,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {images.map(item => {
-                    const idx = media.findIndex(m => m.id === item.id)
+                    const idx = sortedMedia.findIndex(m => m.id === item.id)
                     return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={handleTagItem} canEdit={canEditItem(item)}/>
                   })}
                 </div>
@@ -327,7 +348,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {videos.map(item => {
-                    const idx = media.findIndex(m => m.id === item.id)
+                    const idx = sortedMedia.findIndex(m => m.id === item.id)
                     return <MediaCard key={item.id} item={item} index={idx} onPreview={setPreviewIndex} onTag={handleTagItem} canEdit={canEditItem(item)}/>
                   })}
                 </div>
@@ -354,7 +375,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
       {/* Overlays */}
       {previewIndex !== null && media[previewIndex] && (
         <FullPreview
-          items={media}
+          items={sortedMedia}
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
           onTagPhoto={handleTagFromPreview}
