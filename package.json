@@ -9,7 +9,14 @@
     "preview": "vite preview",
     "deploy": "bash deploy.sh",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
-    "deploy:all": "npm run build && firebase deploy"
+    "deploy:all": "npm run build && firebase deploy",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:rules": "node --experimental-vm-modules node_modules/.bin/jest tests/firestore.rules.test.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "transform": {}
   },
   "dependencies": {
     "firebase": "^12.13.0",
@@ -17,8 +24,10 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.14",
+    "jest": "^30.4.2",
     "postcss": "^8.4.24",
     "tailwindcss": "^3.3.2",
     "vite": "^4.3.9"
