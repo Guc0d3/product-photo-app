@@ -24,6 +24,19 @@ export async function fetchMediaByMonth(yearMonth) {
   }))
 }
 
+async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res
+    } catch (err) {
+      if (attempt === retries) throw err
+      await new Promise(r => setTimeout(r, delayMs * attempt))
+    }
+  }
+}
+
 /**
  * Export media items to a local folder using the File System Access API.
  * Folder structure: [productType or _untagged] / [YYYY-MM-DD] / [filename]
@@ -40,8 +53,8 @@ export async function exportMediaToFolder(items, dirHandle, onProgress) {
     const typeDir = await dirHandle.getDirectoryHandle(folderName, { create: true })
     const dateDir = await typeDir.getDirectoryHandle(dateStr,     { create: true })
 
-    // Download and write file
-    const response = await fetch(item.url)
+    // Download and write file (retry up to 3 times on transient network errors)
+    const response = await fetchWithRetry(item.url)
     const blob     = await response.blob()
     const fh       = await dateDir.getFileHandle(filename, { create: true })
     const writable = await fh.createWritable()
