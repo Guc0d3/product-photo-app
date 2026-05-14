@@ -30,8 +30,8 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
       setCapturedFile(file)
       setPreviewUrl(url)
       setPhase('preview')
-    } catch (err) {
-      console.error('capture failed:', err)
+    } catch {
+      // capture failed — user stays on viewfinder and can retry
     }
   }
 

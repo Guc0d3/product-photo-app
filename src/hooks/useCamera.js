@@ -47,7 +47,6 @@ export function useCamera(facingMode = 'environment') {
 
       // All attempts failed
       if (!cancelled) {
-        console.error('getUserMedia:', lastErr)
         if (lastErr.name === 'NotAllowedError')  setError('cameraPermissionDenied')
         else if (lastErr.name === 'NotFoundError') setError('cameraNotFound')
         else setError('cameraError')

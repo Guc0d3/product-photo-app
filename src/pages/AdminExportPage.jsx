@@ -29,7 +29,7 @@ export default function AdminExportPage({ onBack }) {
     setExportError(null)
     fetchMediaByMonth(yearMonth)
       .then(data => { setItems(data); setLoadingData(false) })
-      .catch(err  => { console.error('fetchMediaByMonth:', err); setFetchError(err.message); setLoadingData(false) })
+      .catch(err  => { setFetchError(err.message); setLoadingData(false) })
   }, [yearMonth])
 
   // Compute stats
@@ -56,7 +56,6 @@ export default function AdminExportPage({ onBack }) {
       if (err.name === 'AbortError') {
         // user cancelled — do nothing
       } else {
-        console.error('exportMediaToFolder:', err)
         setExportError(err.message)
       }
     } finally {

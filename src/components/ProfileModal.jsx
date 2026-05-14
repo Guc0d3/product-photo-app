@@ -5,20 +5,22 @@ import { updateDisplayName } from '../services/authService.js'
 
 export default function ProfileModal({ user, onClose, onLogout, onExport }) {
   const { t } = useLang()
-  const [name,   setName]   = useState(user?.displayName || '')
-  const [saving, setSaving] = useState(false)
-  const [saved,  setSaved]  = useState(false)
+  const [name,      setName]      = useState(user?.displayName || '')
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   const handleSave = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
     setSaving(true)
+    setSaveError(null)
     try {
       await updateDisplayName(name.trim())
       setSaved(true)
       setTimeout(onClose, 800)
-    } catch (err) {
-      console.error('updateDisplayName:', err)
+    } catch {
+      setSaveError('บันทึกไม่สำเร็จ กรุณาลองใหม่')
     } finally {
       setSaving(false)
     }
@@ -74,6 +76,9 @@ export default function ProfileModal({ user, onClose, onLogout, onExport }) {
                 ชื่อนี้จะปรากฏเป็นลายน้ำบนรูปที่ถ่าย
               </p>
             </div>
+            {saveError && (
+              <p className="text-xs text-red-500 text-center">{saveError}</p>
+            )}
             <button
               type="submit"
               disabled={!name.trim() || saving || saved}

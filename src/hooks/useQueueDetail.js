@@ -49,7 +49,6 @@ export function useQueueDetail(queue, user) {
       await syncHasUntagged(queue.id, updated)
       return true
     } catch (err) {
-      console.error('handleTag:', err)
       setError(err.message)
       return false
     }
@@ -72,7 +71,6 @@ export function useQueueDetail(queue, user) {
         )
       }
     } catch (err) {
-      console.error('handleDelete:', err)
       setError(err.message)
     }
   }
@@ -82,7 +80,6 @@ export function useQueueDetail(queue, user) {
       await firstApproveQueue(queue.id, user)
       return true
     } catch (err) {
-      console.error('handleFirstApproval:', err)
       setError(err.message)
       return false
     }
@@ -93,7 +90,6 @@ export function useQueueDetail(queue, user) {
       await closeQueue(queue.id, user)
       return true
     } catch (err) {
-      console.error('handleClose:', err)
       setError(err.message)
       return false
     }
@@ -104,7 +100,6 @@ export function useQueueDetail(queue, user) {
       await updateQcStatus(queue.id, mediaId, status)
       return true
     } catch (err) {
-      console.error('handleQcStatus:', err)
       setError(err.message)
       return false
     }
@@ -115,7 +110,6 @@ export function useQueueDetail(queue, user) {
       await cancelQueue(queue.id)
       return true
     } catch (err) {
-      console.error('handleCancel:', err)
       setError(err.message)
       return false
     }
@@ -126,7 +120,6 @@ export function useQueueDetail(queue, user) {
       await reopenQueue(queue.id)
       return true
     } catch (err) {
-      console.error('handleReopen:', err)
       setError(err.message)
       return false
     }

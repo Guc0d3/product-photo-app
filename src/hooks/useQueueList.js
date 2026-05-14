@@ -14,7 +14,6 @@ import { getTodayPrefix } from '../utils/dateUtils.js'
 export function useQueueList() {
   const [queues, setQueues]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
   const [search, setSearch]   = useState('')
   const [filter, setFilter]   = useState('all')
 
@@ -48,22 +47,11 @@ export function useQueueList() {
     if (isDuplicateToday(queueNumber)) {
       throw new Error('duplicateQueueNumber')
     }
-    try {
-      await createQueue({ queueNumber, supplier, note })
-    } catch (err) {
-      console.error('createQueue:', err)
-      setError(err.message)
-      throw err
-    }
+    await createQueue({ queueNumber, supplier, note })
   }
 
   const handleTogglePin = async (queueId, currentPinned) => {
-    try {
-      await togglePin(queueId, !currentPinned)
-    } catch (err) {
-      console.error('togglePin:', err)
-      setError(err.message)
-    }
+    await togglePin(queueId, !currentPinned).catch(() => {})
   }
 
   // ── derived data ─────────────────────────────────────────────────────────
@@ -91,7 +79,6 @@ export function useQueueList() {
   return {
     queues:  sorted,
     loading,
-    error,
     search,  setSearch,
     filter,  setFilter,
     handleCreate,
