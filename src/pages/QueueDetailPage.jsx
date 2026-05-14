@@ -286,7 +286,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
           <p className="text-xs text-amber-700 font-medium">
             {t.pendingCloseBy(q?.firstApproval?.displayName ?? '...')}
             {' · '}
-            {isAlreadyFirstApprover ? t.alreadyApproved : 'รอการยืนยันขั้นที่ 2'}
+            {isAlreadyFirstApprover ? t.alreadyApproved : t.waitingSecondApproval}
           </p>
         </div>
       )}
