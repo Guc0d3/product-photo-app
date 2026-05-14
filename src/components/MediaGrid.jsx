@@ -1,8 +1,7 @@
 import { useLang } from '../contexts/LangContext.jsx'
 import LoadingSpinner from './LoadingSpinner.jsx'
 import MediaCard from './MediaCard.jsx'
-
-const VIDEO_EXPIRY_DAYS = 15
+import { VIDEO_EXPIRY_DAYS } from '../utils/dateUtils.js'
 
 export default function MediaGrid({ loading, sortedMedia, images, videos, groupBy, canEditItem, onPreview, onTag }) {
   const { t } = useLang()

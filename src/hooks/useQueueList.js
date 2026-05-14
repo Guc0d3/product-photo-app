@@ -4,6 +4,7 @@ import {
   createQueue,
   togglePin,
 } from '../services/queueService.js'
+import { getTodayPrefix } from '../utils/dateUtils.js'
 
 /**
  * Controller hook for the queue list screen.
@@ -33,11 +34,7 @@ export function useQueueList() {
    * เปรียบเทียบกับ code prefix RI{YYYYMMDD} เพราะ queues โหลดไว้ใน state แล้ว
    */
   function isDuplicateToday(queueNumber) {
-    const now   = new Date()
-    const y     = now.getFullYear()
-    const m     = String(now.getMonth() + 1).padStart(2, '0')
-    const d     = String(now.getDate()).padStart(2, '0')
-    const prefix = `RI${y}${m}${d}`
+    const prefix = getTodayPrefix()
     return queues.some(
       q => q.queueNumber === queueNumber && q.code?.startsWith(prefix),
     )

@@ -1,4 +1,4 @@
-const VIDEO_EXPIRY_DAYS = 15
+export const VIDEO_EXPIRY_DAYS = 15
 
 export function formatTime(date) {
   if (!date) return ''
@@ -24,12 +24,16 @@ export function parseCode(code) {
   return { date: `${m[3]}-${m[2]}-${m[1]}`, seq: m[4] }
 }
 
-export function getTodayPrefix() {
+export function getTodayStr() {
   const now = new Date()
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
-  return `RI${y}${m}${d}`
+  return `${y}${m}${d}`
+}
+
+export function getTodayPrefix() {
+  return `RI${getTodayStr()}`
 }
 
 export function timeAgo(date, t) {
