@@ -10,8 +10,9 @@
     "deploy": "bash deploy.sh",
     "deploy:rules": "firebase deploy --only firestore:rules,storage",
     "deploy:all": "npm run build && firebase deploy",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
-    "test:rules": "node --experimental-vm-modules node_modules/.bin/jest tests/firestore.rules.test.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest tests/dateUtils.test.js",
+    "test:rules": "firebase emulators:exec --only firestore 'node --experimental-vm-modules node_modules/.bin/jest tests/firestore.rules.test.js'",
+    "test:all": "npm test && npm run test:rules",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write src"
