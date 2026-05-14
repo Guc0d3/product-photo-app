@@ -65,7 +65,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
-    } catch (err) {
+    } catch {
       setUploadError(t.uploadError)
       setUploading(false)
     }

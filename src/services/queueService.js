@@ -37,7 +37,7 @@ export function subscribeQueue(queueId, onData, onError) {
   return onSnapshot(
     doc(db, 'queues', queueId),
     (snap) => { if (snap.exists()) onData(toQueue(snap)) },
-    (err)  => { console.error('subscribeQueue:', err); onError?.(err) },
+    (err)  => { console.warn('subscribeQueue:', err); onError?.(err) },
   )
 }
 
@@ -50,7 +50,7 @@ export function subscribeQueues(onData, onError) {
   return onSnapshot(
     q,
     (snap) => onData(snap.docs.map(toQueue)),
-    (err)  => { console.error('subscribeQueues:', err); onError?.(err) },
+    (err)  => { console.warn('subscribeQueues:', err); onError?.(err) },
   )
 }
 

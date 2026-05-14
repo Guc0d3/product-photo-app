@@ -27,7 +27,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
     if (!error) return
     const timer = setTimeout(clearError, 4000)
     return () => clearTimeout(timer)
-  }, [error])
+  }, [error, clearError])
 
   const q = liveQueue ?? queue
   const { products } = useProducts()

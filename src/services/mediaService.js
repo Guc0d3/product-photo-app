@@ -29,7 +29,7 @@ export function subscribeMedia(queueId, onData, onError) {
   return onSnapshot(
     q,
     (snap) => onData(snap.docs.map(toMedia)),
-    (err)  => { console.error('subscribeMedia:', err); onError?.(err) },
+    (err)  => { console.warn('subscribeMedia:', err); onError?.(err) },
   )
 }
 

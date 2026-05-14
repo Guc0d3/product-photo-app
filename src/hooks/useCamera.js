@@ -55,11 +55,12 @@ export function useCamera(facingMode = 'environment') {
 
     start()
 
+    const video = videoRef.current
     return () => {
       cancelled = true
       streamRef.current?.getTracks().forEach(t => t.stop())
       streamRef.current = null
-      if (videoRef.current) videoRef.current.srcObject = null
+      if (video) video.srcObject = null
       setReady(false)
     }
   }, [facingMode])

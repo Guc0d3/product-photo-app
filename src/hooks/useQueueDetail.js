@@ -25,7 +25,7 @@ export function useQueueDetail(queue, user) {
     setLiveQueue(queue)   // reset immediately so stale data from previous queue doesn't flash
     const unsubscribe = subscribeQueue(queue.id, setLiveQueue)
     return () => unsubscribe()
-  }, [queue?.id])
+  }, [queue?.id, queue])
 
   // ── subscribe to media subcollection ────────────────────────────────────
   useEffect(() => {

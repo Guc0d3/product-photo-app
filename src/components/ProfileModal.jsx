@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useLang } from '../contexts/LangContext.jsx'
 import LoadingSpinner from './LoadingSpinner.jsx'
 import { updateDisplayName } from '../services/authService.js'
 
 export default function ProfileModal({ user, onClose, onLogout, onExport }) {
-  const { t } = useLang()
   const [name,      setName]      = useState(user?.displayName || '')
   const [saving,    setSaving]    = useState(false)
   const [saved,     setSaved]     = useState(false)

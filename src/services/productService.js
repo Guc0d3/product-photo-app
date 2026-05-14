@@ -37,7 +37,7 @@ export function subscribeProducts(onData, onError) {
     q,
     (snap) => onData(snap.docs.map(toProduct).filter((p) => p.active)),
     (err) => {
-      console.error('subscribeProducts:', err)
+      console.warn('subscribeProducts:', err)
       onError?.(err)
     },
   )

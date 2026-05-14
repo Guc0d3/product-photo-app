@@ -17,7 +17,7 @@ export default function ProductTypeModal({ photo, productTypes, isAdmin, onClose
 
   const handleSeed = async () => {
     setSeeding(true)
-    try { await seedProducts() } catch (e) { console.error('seed:', e) }
+    try { await seedProducts() } catch (e) { console.warn('seed:', e) }
     setSeeding(false)
   }
 
