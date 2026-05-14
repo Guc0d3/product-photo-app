@@ -13,6 +13,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const [flash,        setFlash]        = useState(false)
   const [facingMode,   setFacingMode]   = useState('environment')
   const [uploading,    setUploading]    = useState(false)
+  const [uploadError,  setUploadError]  = useState(null)
 
   const fileInputRef = useRef(null)
 
@@ -38,6 +39,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setCapturedFile(null)
     setPreviewUrl(null)
+    setUploadError(null)
     setPhase('viewfinder')
   }
 
@@ -56,6 +58,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const handleConfirm = async () => {
     if (!capturedFile || !queue?.id || uploading) return
     setUploading(true)
+    setUploadError(null)
     try {
       const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
       const { url, storagePath } = await uploadMedia(capturedFile)
@@ -63,7 +66,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch (err) {
-      console.error('upload failed:', err)
+      setUploadError(t.uploadError)
       setUploading(false)
     }
   }
@@ -224,6 +227,9 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
           {/* Action row */}
           <div className="bg-black px-6 pt-6 pb-safe-6">
+            {uploadError && (
+              <p className="text-red-400 text-xs text-center mb-3">{uploadError}</p>
+            )}
             <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
             <div className="flex gap-3">
               <button
