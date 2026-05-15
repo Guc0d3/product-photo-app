@@ -41,7 +41,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
 
   const canEditProductType = (item) =>
-    !isCancelled && item.takenByRole !== 'qc' && (isAdmin || isToday(item.takenAt))
+    !isCancelled && item.takenByRole !== 'qc' && item.type !== 'video' && (isAdmin || isToday(item.takenAt))
 
   const canEditQcStatus = (item) =>
     !isCancelled && item.takenByRole === 'qc' && canChangeQcStatus
@@ -53,7 +53,8 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
     const tb = b.takenAt?.getTime?.() ?? 0
     return sortAsc ? ta - tb : tb - ta
   })
-  const untaggedCount = sortedMedia.filter(p => p.takenByRole !== 'qc' && !p.productType).length
+  // Videos don't require product type tagging
+  const untaggedCount = sortedMedia.filter(p => p.takenByRole !== 'qc' && p.type !== 'video' && !p.productType).length
   const images        = sortedMedia.filter(p => p.type === 'image')
   const videos        = sortedMedia.filter(p => p.type === 'video')
 

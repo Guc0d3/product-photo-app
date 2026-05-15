@@ -65,8 +65,8 @@ export async function addMedia(queueId, { url, storagePath, type, duration, role
     lastMediaAt:  serverTimestamp(),
     updatedAt:    serverTimestamp(),
   }
-  // QC media has no product type — don't flip hasUntagged
-  if (!isQc) queueUpdate.hasUntagged = true
+  // QC media and video files have no product type — don't flip hasUntagged
+  if (!isQc && type !== 'video') queueUpdate.hasUntagged = true
 
   await updateDoc(doc(db, 'queues', queueId), queueUpdate)
 
@@ -103,9 +103,9 @@ export async function deleteMedia(queueId, mediaId, type) {
 
 /**
  * Sync the queue's hasUntagged flag based on the current in-memory media list.
- * QC media (takenByRole === 'qc') are excluded — they use qcStatus, not productType.
+ * QC media (takenByRole === 'qc') and video files are excluded — they don't require productType.
  */
 export async function syncHasUntagged(queueId, mediaItems) {
-  const hasUntagged = mediaItems.some(m => m.takenByRole !== 'qc' && !m.productType)
+  const hasUntagged = mediaItems.some(m => m.takenByRole !== 'qc' && m.type !== 'video' && !m.productType)
   await updateDoc(doc(db, 'queues', queueId), { hasUntagged, updatedAt: serverTimestamp() })
 }
