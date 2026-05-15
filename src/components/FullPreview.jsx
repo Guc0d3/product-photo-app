@@ -170,7 +170,7 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1.5">{takenAtStr}</p>
-            {!isQcItem && (
+            {!isQcItem && current.type !== 'video' && (
               current.productType ? (
                 <span className="inline-flex items-center bg-[#06C755] text-white text-xs font-medium px-3 py-1 rounded-full">
                   {current.productType}

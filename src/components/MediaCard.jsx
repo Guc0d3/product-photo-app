@@ -69,7 +69,8 @@ export default function MediaCard({ item, index, onPreview, onTag, canEdit }) {
           <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded-full ${QC_STATUS_BG[item.qcStatus || 'pending']}`}>
             <QcStatusIcon status={item.qcStatus || 'pending'} size={10}/>
           </div>
-        ) : item.productType ? (
+        ) : item.type === 'video' ? null
+        : item.productType ? (
           <span className={`block text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate text-center ${
             canEdit ? 'bg-[#06C755]' : 'bg-[#06C755]/70'
           }`}>
