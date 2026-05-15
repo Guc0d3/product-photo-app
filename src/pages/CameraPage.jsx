@@ -13,10 +13,12 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const [previewUrl,   setPreviewUrl]   = useState(null)
   const [flash,        setFlash]        = useState(false)
   const [facingMode,   setFacingMode]   = useState('environment')
-  const [uploading,      setUploading]      = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadError,    setUploadError]    = useState(null)
-  const [compressing,    setCompressing]    = useState(false)
+  const [uploading,        setUploading]        = useState(false)
+  const [uploadProgress,   setUploadProgress]   = useState(0)
+  const [uploadPaused,     setUploadPaused]     = useState(false)
+  const [uploadError,      setUploadError]      = useState(null)
+  const [uploadFailed,     setUploadFailed]     = useState(false)  // true after a failed attempt
+  const [compressing,      setCompressing]      = useState(false)
   const [compressProgress, setCompressProgress] = useState(0)
 
   const fileInputRef      = useRef(null)
@@ -45,7 +47,9 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setCapturedFile(null)
     setPreviewUrl(null)
     setUploadError(null)
+    setUploadFailed(false)
     setUploadProgress(0)
+    setUploadPaused(false)
     setCompressProgress(0)
     setPhase('viewfinder')
   }
@@ -91,7 +95,9 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const handleConfirm = async () => {
     if (!capturedFile || !queue?.id || uploading || compressing) return
     setUploadError(null)
+    setUploadFailed(false)
     setUploadProgress(0)
+    setUploadPaused(false)
     setCompressProgress(0)
 
     let fileToUpload = capturedFile
@@ -113,13 +119,16 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setUploading(true)
     try {
       const mediaType = isVideo ? 'video' : 'image'
-      const { url, storagePath } = await uploadMedia(fileToUpload, setUploadProgress)
+      const { url, storagePath } = await uploadMedia(fileToUpload, setUploadProgress, setUploadPaused)
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch {
+      // Keep capturedFile + previewUrl intact so user can retry without retaking
       setUploadError(t.uploadError)
+      setUploadFailed(true)
       setUploading(false)
+      setUploadPaused(false)
       setUploadProgress(0)
     }
   }
@@ -312,10 +321,16 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
           {/* Action row */}
           <div className="bg-black px-6 pt-6 pb-safe-6">
-            {uploadError && (
-              <p className="text-red-400 text-xs text-center mb-3">{uploadError}</p>
+            {/* Error banner — stays until retry or retake */}
+            {uploadError && !uploading && (
+              <div className="flex items-center gap-2 bg-red-500/20 border border-red-500/40 rounded-xl px-3 py-2 mb-3">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#F87171" strokeWidth="2" className="flex-shrink-0">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <p className="text-red-400 text-xs flex-1">{uploadError}</p>
+              </div>
             )}
-            {!uploading && isLargeFile && (
+            {!uploading && !uploadFailed && isLargeFile && (
               <div className="flex items-center gap-2 bg-amber-500/20 border border-amber-500/40 rounded-xl px-3 py-2 mb-3">
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#F59E0B" strokeWidth="2" className="flex-shrink-0">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -330,28 +345,32 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
                   <span>{compressProgress}%</span>
                 </div>
                 <div className="w-full bg-white/20 rounded-full h-1.5">
-                  <div
-                    className="bg-amber-400 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${compressProgress}%` }}
-                  />
+                  <div className="bg-amber-400 h-1.5 rounded-full transition-all duration-300" style={{ width: `${compressProgress}%` }}/>
                 </div>
               </div>
             )}
             {uploading && (
               <div className="mb-3">
                 <div className="flex justify-between text-white/60 text-xs mb-1">
-                  <span>{t.uploading}</span>
+                  {uploadPaused ? (
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#F59E0B"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                      {t.uploadWaiting}
+                    </span>
+                  ) : (
+                    <span>{t.uploading}</span>
+                  )}
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-white/20 rounded-full h-1.5">
                   <div
-                    className="bg-[#06C755] h-1.5 rounded-full transition-all duration-300"
+                    className={`h-1.5 rounded-full transition-all duration-300 ${uploadPaused ? 'bg-amber-400' : 'bg-[#06C755]'}`}
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
               </div>
             )}
-            {!uploading && (
+            {!uploading && !compressing && (
               <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
             )}
             <div className="flex gap-3">
@@ -365,9 +384,17 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
               <button
                 onClick={handleConfirm}
                 disabled={uploading || compressing}
-                className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-70"
+                className={`flex-1 text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-70 ${
+                  uploadFailed ? 'bg-orange-500' : 'bg-[#06C755]'
+                }`}
               >
-                {compressing ? `บีบอัด ${compressProgress}%` : uploading ? `${uploadProgress}%` : t.usePhoto}
+                {compressing
+                  ? `บีบอัด ${compressProgress}%`
+                  : uploading
+                  ? `${uploadProgress}%`
+                  : uploadFailed
+                  ? t.retryUpload
+                  : t.usePhoto}
               </button>
             </div>
           </div>

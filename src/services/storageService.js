@@ -8,7 +8,7 @@ import { storage } from '../firebase/firebase.js'
  * @param {(pct: number) => void} [onProgress] - called with 0–100
  * Returns { url, storagePath }.
  */
-export function uploadMedia(file, onProgress) {
+export function uploadMedia(file, onProgress, onPaused) {
   const ext      = file.name?.split('.').pop() || (file.type?.startsWith('video') ? 'mp4' : 'jpg')
   const filename = `${Date.now()}.${ext}`
   const yyyyMmDd = new Date().toISOString().slice(0, 10)
@@ -21,12 +21,19 @@ export function uploadMedia(file, onProgress) {
     task.on(
       'state_changed',
       (snapshot) => {
-        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-        onProgress?.(pct)
+        if (snapshot.state === 'paused') {
+          // Network dropped — Firebase SDK will auto-retry when connectivity returns
+          onPaused?.(true)
+        } else {
+          onPaused?.(false)
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+          onProgress?.(pct)
+        }
       },
-      reject,
+      (err) => { onPaused?.(false); reject(err) },
       async () => {
         try {
+          onPaused?.(false)
           const url = await getDownloadURL(task.snapshot.ref)
           resolve({ url, storagePath: path })
         } catch (err) {
