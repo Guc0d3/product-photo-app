@@ -47,16 +47,21 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   }
 
   // ── pick from library ──────────────────────────────────────────────────────
+  const LARGE_FILE_THRESHOLD_MB = 50
+
   const handlePickFile = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     const url = URL.createObjectURL(file)
     setCapturedFile(file)
     setPreviewUrl(url)
+    setUploadError(null)
     setPhase('preview')
-    // reset so same file can be picked again
     e.target.value = ''
   }
+
+  const fileSizeMB   = capturedFile ? Math.round(capturedFile.size / (1024 * 1024)) : 0
+  const isLargeFile  = fileSizeMB >= LARGE_FILE_THRESHOLD_MB
 
   const handleConfirm = async () => {
     if (!capturedFile || !queue?.id || uploading) return
@@ -251,6 +256,14 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
           <div className="bg-black px-6 pt-6 pb-safe-6">
             {uploadError && (
               <p className="text-red-400 text-xs text-center mb-3">{uploadError}</p>
+            )}
+            {!uploading && isLargeFile && (
+              <div className="flex items-center gap-2 bg-amber-500/20 border border-amber-500/40 rounded-xl px-3 py-2 mb-3">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#F59E0B" strokeWidth="2" className="flex-shrink-0">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <p className="text-amber-400 text-xs">{t.uploadLargeFileWarning(fileSizeMB)}</p>
+              </div>
             )}
             {uploading && (
               <div className="mb-3">
