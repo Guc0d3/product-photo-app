@@ -48,16 +48,35 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
   // ── pick from library ──────────────────────────────────────────────────────
   const LARGE_FILE_THRESHOLD_MB = 50
+  const MAX_VIDEO_SECONDS       = 60
 
-  const handlePickFile = (e) => {
+  const getVideoDuration = (file) => new Promise((resolve) => {
+    const vid = document.createElement('video')
+    vid.preload = 'metadata'
+    vid.onloadedmetadata = () => { URL.revokeObjectURL(vid.src); resolve(vid.duration) }
+    vid.onerror = () => resolve(null)
+    vid.src = URL.createObjectURL(file)
+  })
+
+  const handlePickFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    e.target.value = ''
+
+    // Check video duration before showing preview
+    if (file.type?.startsWith('video')) {
+      const duration = await getVideoDuration(file)
+      if (duration !== null && duration > MAX_VIDEO_SECONDS) {
+        setUploadError(t.videoTooLong(MAX_VIDEO_SECONDS))
+        return
+      }
+    }
+
     const url = URL.createObjectURL(file)
     setCapturedFile(file)
     setPreviewUrl(url)
     setUploadError(null)
     setPhase('preview')
-    e.target.value = ''
   }
 
   const fileSizeMB   = capturedFile ? Math.round(capturedFile.size / (1024 * 1024)) : 0
@@ -164,6 +183,20 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
             </div>
           </div>
 
+          {/* Video-too-long error toast */}
+          {uploadError && (
+            <div className="bg-black px-4 pt-2">
+              <div className="flex items-center justify-between bg-red-500/20 border border-red-500/40 rounded-xl px-3 py-2">
+                <p className="text-red-400 text-xs">{uploadError}</p>
+                <button onClick={() => setUploadError(null)} className="text-red-400 ml-2">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Shutter row */}
           <div className="bg-black px-6 pt-8 pb-safe-8 flex items-center justify-between">
 
@@ -211,6 +244,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
             onChange={handlePickFile}
           />
           {/* capture="camcorder" opens native camera in video mode on Android */}
+          {/* max recording time ~60s enforced via accept MIME hint on some browsers */}
           <input
             ref={videoInputRef}
             type="file"
