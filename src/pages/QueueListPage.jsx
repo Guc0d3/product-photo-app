@@ -12,7 +12,7 @@ export default function QueueListPage({ user, onSelectQueue, onLogout, onExport 
   const [showProfile, setShowProfile] = useState(false)
 
   const {
-    queues, loading,
+    queues, loading, error,
     search, setSearch,
     filter, setFilter,
     dateRange, setDateRange,
@@ -107,7 +107,14 @@ export default function QueueListPage({ user, onSelectQueue, onLogout, onExport 
 
       {/* List */}
       <div className="flex-1 overflow-y-auto pt-3 pb-4">
-        {loading ? (
+        {error ? (
+          <div className="mx-3 mt-2 flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="2" className="flex-shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            <p className="text-red-600 text-xs">{error}</p>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center py-20">
             <LoadingSpinner className="w-7 h-7 text-[#06C755]"/>
           </div>

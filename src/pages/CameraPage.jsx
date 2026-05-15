@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLang } from '../contexts/LangContext.jsx'
 import { useCamera } from '../hooks/useCamera.js'
 import { uploadMedia } from '../services/storageService.js'
@@ -23,6 +23,16 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
   const fileInputRef      = useRef(null)
   const videoInputRef     = useRef(null)
+  const uploadCancelRef   = useRef(null)   // holds cancel fn for the active upload task
+  const previewUrlRef     = useRef(null)   // mirrors previewUrl for cleanup
+
+  // Cancel any in-progress upload and revoke object URL on unmount
+  useEffect(() => {
+    return () => {
+      uploadCancelRef.current?.()
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    }
+  }, [])
 
   const { videoRef, error, ready, handleVideoReady, capture } = useCamera(facingMode)
 
@@ -35,6 +45,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
       const file = await capture()
       const url  = URL.createObjectURL(file)
       setCapturedFile(file)
+      previewUrlRef.current = url
       setPreviewUrl(url)
       setPhase('preview')
     } catch {
@@ -43,7 +54,10 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   }
 
   const handleRetake = () => {
+    uploadCancelRef.current?.()
+    uploadCancelRef.current = null
     if (previewUrl) URL.revokeObjectURL(previewUrl)
+    previewUrlRef.current = null
     setCapturedFile(null)
     setPreviewUrl(null)
     setUploadError(null)
@@ -82,13 +96,16 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
     const url = URL.createObjectURL(file)
     setCapturedFile(file)
+    previewUrlRef.current = url
     setPreviewUrl(url)
     setUploadError(null)
     setPhase('preview')
   }
 
   const fileSizeMB   = capturedFile ? Math.round(capturedFile.size / (1024 * 1024)) : 0
-  const isLargeFile  = fileSizeMB >= LARGE_FILE_THRESHOLD_MB
+  const isVideo      = capturedFile?.type?.startsWith('video')
+  // Show warning only for images, or for videos too large even after compression threshold
+  const isLargeFile  = fileSizeMB >= LARGE_FILE_THRESHOLD_MB && !isVideo
 
   const COMPRESS_THRESHOLD_MB = 20   // compress videos larger than this
 
@@ -119,12 +136,17 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setUploading(true)
     try {
       const mediaType = isVideo ? 'video' : 'image'
-      const { url, storagePath } = await uploadMedia(fileToUpload, setUploadProgress, setUploadPaused)
+      const { promise, cancel } = uploadMedia(fileToUpload, setUploadProgress, setUploadPaused)
+      uploadCancelRef.current = cancel
+      const { url, storagePath } = await promise
+      uploadCancelRef.current = null
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
+      previewUrlRef.current = null
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch {
       // Keep capturedFile + previewUrl intact so user can retry without retaking
+      uploadCancelRef.current = null
       setUploadError(t.uploadError)
       setUploadFailed(true)
       setUploading(false)

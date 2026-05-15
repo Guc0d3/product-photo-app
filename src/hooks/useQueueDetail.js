@@ -25,7 +25,7 @@ export function useQueueDetail(queue, user) {
     setLiveQueue(queue)   // reset immediately so stale data from previous queue doesn't flash
     const unsubscribe = subscribeQueue(queue.id, setLiveQueue)
     return () => unsubscribe()
-  }, [queue?.id, queue])
+  }, [queue?.id])  // depend only on id — new object reference for same queue must not re-subscribe
 
   // ── subscribe to media subcollection ────────────────────────────────────
   useEffect(() => {
@@ -57,10 +57,12 @@ export function useQueueDetail(queue, user) {
   const handleDelete = async (mediaId) => {
     try {
       const item = media.find(m => m.id === mediaId)
-      if (!item) return
+      if (!item) return false
 
       // 1. Delete Firestore doc first → onSnapshot fires → UI updates immediately
       await deleteMedia(queue.id, mediaId, item.type)
+
+      // Use current media ref to avoid stale snapshot
       const remaining = media.filter(m => m.id !== mediaId)
       await syncHasUntagged(queue.id, remaining)
 
@@ -70,8 +72,10 @@ export function useQueueDetail(queue, user) {
           console.warn('Storage delete failed (non-blocking):', err)
         )
       }
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     }
   }
 

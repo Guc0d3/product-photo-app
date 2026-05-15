@@ -14,6 +14,7 @@ export function isToday(date) {
 }
 
 export function daysUntilExpiry(takenAt) {
+  if (!takenAt) return null  // server timestamp not yet resolved
   const expiry = new Date(takenAt).getTime() + VIDEO_EXPIRY_DAYS * 86400000
   return Math.ceil((expiry - Date.now()) / 86400000)
 }

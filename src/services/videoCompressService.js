@@ -32,31 +32,35 @@ export async function compressVideo(file, onProgress) {
   const inputName  = `input.${file.name.split('.').pop() || 'mp4'}`
   const outputName = 'output.mp4'
 
-  ffmpeg.on('progress', ({ progress }) => {
-    onProgress?.(Math.round(progress * 100))
-  })
+  // Register progress handler and always remove it when done to prevent accumulation
+  const onProgressHandler = ({ progress }) => onProgress?.(Math.round(progress * 100))
+  ffmpeg.on('progress', onProgressHandler)
 
-  await ffmpeg.writeFile(inputName, await fetchFile(file))
+  try {
+    await ffmpeg.writeFile(inputName, await fetchFile(file))
 
-  await ffmpeg.exec([
-    '-i',       inputName,
-    '-vf',      'scale=-2:720',    // max 720p, keep aspect ratio
-    '-c:v',     'libx264',
-    '-crf',     '28',              // quality (lower = better, 18–28 typical)
-    '-preset',  'ultrafast',       // fast encode, slightly larger
-    '-c:a',     'aac',
-    '-b:a',     '96k',
-    '-movflags', '+faststart',     // optimize for streaming
-    outputName,
-  ])
+    await ffmpeg.exec([
+      '-i',       inputName,
+      '-vf',      'scale=-2:720',    // max 720p, keep aspect ratio
+      '-c:v',     'libx264',
+      '-crf',     '28',              // quality (lower = better, 18–28 typical)
+      '-preset',  'ultrafast',       // fast encode, slightly larger
+      '-c:a',     'aac',
+      '-b:a',     '96k',
+      '-movflags', '+faststart',     // optimize for streaming
+      outputName,
+    ])
 
-  const data = await ffmpeg.readFile(outputName)
-  await ffmpeg.deleteFile(inputName)
-  await ffmpeg.deleteFile(outputName)
+    const data = await ffmpeg.readFile(outputName)
+    await ffmpeg.deleteFile(inputName)
+    await ffmpeg.deleteFile(outputName)
 
-  return new File(
-    [data.buffer],
-    `compressed_${Date.now()}.mp4`,
-    { type: 'video/mp4' },
-  )
+    return new File(
+      [data.buffer],
+      `compressed_${Date.now()}.mp4`,
+      { type: 'video/mp4' },
+    )
+  } finally {
+    ffmpeg.off('progress', onProgressHandler)
+  }
 }

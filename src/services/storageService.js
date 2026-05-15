@@ -15,9 +15,9 @@ export function uploadMedia(file, onProgress, onPaused) {
   const path     = `media/${yyyyMmDd}/${filename}`
   const fileRef  = ref(storage, path)
 
-  return new Promise((resolve, reject) => {
-    const task = uploadBytesResumable(fileRef, file)
+  const task = uploadBytesResumable(fileRef, file)
 
+  const promise = new Promise((resolve, reject) => {
     task.on(
       'state_changed',
       (snapshot) => {
@@ -42,6 +42,9 @@ export function uploadMedia(file, onProgress, onPaused) {
       },
     )
   })
+
+  // Return both the promise and a cancel function so callers can abort on unmount
+  return { promise, cancel: () => task.cancel() }
 }
 
 /**

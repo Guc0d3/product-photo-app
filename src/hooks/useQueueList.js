@@ -30,6 +30,7 @@ function getStartDate(rangeDays) {
 export function useQueueList() {
   const [queues, setQueues]       = useState([])
   const [loading, setLoading]     = useState(true)
+  const [error,   setError]       = useState(null)
   const [search, setSearch]       = useState('')
   const [filter, setFilter]       = useState('all')
   const [dateRange, setDateRange] = useState(0)   // default: today only
@@ -37,10 +38,11 @@ export function useQueueList() {
   // ── real-time subscription ──────────────────────────────────────────────
   useEffect(() => {
     setLoading(true)
+    setError(null)
     const startDate = getStartDate(dateRange)
     const unsubscribe = subscribeQueues(
       (data) => { setQueues(data); setLoading(false) },
-      ()     => setLoading(false),
+      (err)  => { setError(err?.message ?? 'โหลดข้อมูลไม่สำเร็จ'); setLoading(false) },
       startDate,
     )
     return () => unsubscribe()
@@ -99,6 +101,7 @@ export function useQueueList() {
   return {
     queues:  sorted,
     loading,
+    error,
     search,  setSearch,
     filter,  setFilter,
     dateRange, setDateRange,

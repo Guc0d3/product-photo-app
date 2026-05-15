@@ -35,13 +35,12 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
 
   const handleDelete = async () => {
     const remaining = items.length - 1
+    const ok = await onDelete(current.id)
+    if (!ok) return  // Firestore failed — onSnapshot will restore the item; stay put
     if (remaining === 0) {
-      await onDelete(current.id)
       onClose()
     } else {
-      const nextIndex = index >= remaining ? remaining - 1 : index
-      await onDelete(current.id)
-      setIndex(nextIndex)
+      setIndex(index >= remaining ? remaining - 1 : index)
       setConfirmDelete(false)
     }
   }
@@ -49,9 +48,11 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
   const onTouchEnd   = (e) => {
     if (touchStartX.current === null) return
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    if (dx > 50) goPrev()
-    else if (dx < -50) goNext()
+    if (!zoomed) {   // disable swipe navigation while image is zoomed so user can pan
+      const dx = e.changedTouches[0].clientX - touchStartX.current
+      if (dx > 50) goPrev()
+      else if (dx < -50) goNext()
+    }
     touchStartX.current = null
   }
 

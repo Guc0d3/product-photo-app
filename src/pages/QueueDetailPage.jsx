@@ -160,7 +160,7 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
       )}
 
       {/* Overlays */}
-      {previewIndex !== null && media[previewIndex] && (
+      {previewIndex !== null && sortedMedia[previewIndex] && (
         <FullPreview
           items={sortedMedia}
           startIndex={previewIndex}
