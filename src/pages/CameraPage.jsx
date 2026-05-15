@@ -52,7 +52,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
 
   // ── pick from library ──────────────────────────────────────────────────────
   const LARGE_FILE_THRESHOLD_MB = 50
-  const MAX_VIDEO_SECONDS       = 60
+  const MAX_VIDEO_SECONDS       = 30
 
   const getVideoDuration = (file) => new Promise((resolve) => {
     const vid = document.createElement('video')
