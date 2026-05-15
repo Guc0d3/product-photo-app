@@ -1,15 +1,16 @@
 import { useLang } from '../contexts/LangContext.jsx'
-import { parseCode, timeAgo } from '../utils/dateUtils.js'
+import { parseCode, timeAgo, getTodayPrefix } from '../utils/dateUtils.js'
 
 export default function QueueItem({ queue, onSelect, onTogglePin }) {
   const { t } = useLang()
   const { date, seq } = parseCode(queue.code)
+  const isPast = !queue.code?.startsWith(getTodayPrefix())
 
   return (
     <div className="relative group mx-4 mb-2.5">
       <button
         onClick={() => onSelect(queue)}
-        className="w-full bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:shadow-[0_1px_4px_rgba(0,0,0,0.08)] active:scale-[0.99] transition-all text-left overflow-hidden"
+        className={`w-full rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:shadow-[0_1px_4px_rgba(0,0,0,0.08)] active:scale-[0.99] transition-all text-left overflow-hidden ${isPast ? 'bg-gray-100' : 'bg-white'}`}
       >
         {queue.pinned && (
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#06C755] rounded-l-2xl"/>
