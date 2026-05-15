@@ -6,25 +6,45 @@ import {
 } from '../services/queueService.js'
 import { getTodayPrefix } from '../utils/dateUtils.js'
 
+// Date range options: value = days back (0 = today only, null = all time)
+export const DATE_RANGE_OPTIONS = [
+  { value: 0,    labelKey: 'dateRangeToday' },
+  { value: 7,    labelKey: 'dateRange7Days' },
+  { value: 30,   labelKey: 'dateRange30Days' },
+  { value: null, labelKey: 'dateRangeAll' },
+]
+
+function getStartDate(rangeDays) {
+  if (rangeDays === null) return null
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - rangeDays)
+  return d
+}
+
 /**
  * Controller hook for the queue list screen.
  * Subscribes to Firestore in real-time; exposes filtered/sorted queues
  * and action handlers.
  */
 export function useQueueList() {
-  const [queues, setQueues]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
-  const [filter, setFilter]   = useState('all')
+  const [queues, setQueues]       = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [search, setSearch]       = useState('')
+  const [filter, setFilter]       = useState('all')
+  const [dateRange, setDateRange] = useState(0)   // default: today only
 
   // ── real-time subscription ──────────────────────────────────────────────
   useEffect(() => {
+    setLoading(true)
+    const startDate = getStartDate(dateRange)
     const unsubscribe = subscribeQueues(
       (data) => { setQueues(data); setLoading(false) },
       ()     => setLoading(false),
+      startDate,
     )
     return () => unsubscribe()
-  }, [])
+  }, [dateRange])
 
   // ── actions ─────────────────────────────────────────────────────────────
 
@@ -81,6 +101,7 @@ export function useQueueList() {
     loading,
     search,  setSearch,
     filter,  setFilter,
+    dateRange, setDateRange,
     handleCreate,
     handleTogglePin,
   }

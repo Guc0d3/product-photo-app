@@ -1,7 +1,7 @@
 import {
   collection, doc, addDoc, updateDoc,
-  onSnapshot, query, orderBy,
-  runTransaction, serverTimestamp,
+  onSnapshot, query, orderBy, where, limit,
+  runTransaction, serverTimestamp, Timestamp,
 } from 'firebase/firestore'
 import { db, auth } from '../firebase/firebase.js'
 import { getTodayStr } from '../utils/dateUtils.js'
@@ -42,11 +42,16 @@ export function subscribeQueue(queueId, onData, onError) {
 }
 
 /**
- * Realtime subscription to all queues, ordered by createdAt desc.
+ * Realtime subscription to queues within a date range.
+ * @param {Date|null} startDate - filter createdAt >= startDate (null = no filter)
+ * @param {number} maxResults - max documents to fetch (default 300)
  * Returns unsubscribe function.
  */
-export function subscribeQueues(onData, onError) {
-  const q = query(collection(db, 'queues'), orderBy('createdAt', 'desc'))
+export function subscribeQueues(onData, onError, startDate = null, maxResults = 300) {
+  const constraints = [orderBy('createdAt', 'desc')]
+  if (startDate) constraints.push(where('createdAt', '>=', Timestamp.fromDate(startDate)))
+  constraints.push(limit(maxResults))
+  const q = query(collection(db, 'queues'), ...constraints)
   return onSnapshot(
     q,
     (snap) => onData(snap.docs.map(toQueue)),
