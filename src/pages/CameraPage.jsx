@@ -3,6 +3,7 @@ import { useLang } from '../contexts/LangContext.jsx'
 import { useCamera } from '../hooks/useCamera.js'
 import { uploadMedia } from '../services/storageService.js'
 import { addMedia } from '../services/mediaService.js'
+import { compressVideo } from '../services/videoCompressService.js'
 
 export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const { t } = useLang()
@@ -15,6 +16,8 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const [uploading,      setUploading]      = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadError,    setUploadError]    = useState(null)
+  const [compressing,    setCompressing]    = useState(false)
+  const [compressProgress, setCompressProgress] = useState(0)
 
   const fileInputRef      = useRef(null)
   const videoInputRef     = useRef(null)
@@ -43,6 +46,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setPreviewUrl(null)
     setUploadError(null)
     setUploadProgress(0)
+    setCompressProgress(0)
     setPhase('viewfinder')
   }
 
@@ -82,14 +86,34 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const fileSizeMB   = capturedFile ? Math.round(capturedFile.size / (1024 * 1024)) : 0
   const isLargeFile  = fileSizeMB >= LARGE_FILE_THRESHOLD_MB
 
+  const COMPRESS_THRESHOLD_MB = 20   // compress videos larger than this
+
   const handleConfirm = async () => {
-    if (!capturedFile || !queue?.id || uploading) return
-    setUploading(true)
+    if (!capturedFile || !queue?.id || uploading || compressing) return
     setUploadError(null)
     setUploadProgress(0)
+    setCompressProgress(0)
+
+    let fileToUpload = capturedFile
+    const isVideo = capturedFile.type?.startsWith('video')
+
+    // Compress video if large enough to benefit
+    if (isVideo && capturedFile.size > COMPRESS_THRESHOLD_MB * 1024 * 1024) {
+      setCompressing(true)
+      try {
+        fileToUpload = await compressVideo(capturedFile, setCompressProgress)
+      } catch {
+        // Compression failed — fall back to original file
+        fileToUpload = capturedFile
+      } finally {
+        setCompressing(false)
+      }
+    }
+
+    setUploading(true)
     try {
-      const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
-      const { url, storagePath } = await uploadMedia(capturedFile, setUploadProgress)
+      const mediaType = isVideo ? 'video' : 'image'
+      const { url, storagePath } = await uploadMedia(fileToUpload, setUploadProgress)
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
@@ -299,6 +323,20 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
                 <p className="text-amber-400 text-xs">{t.uploadLargeFileWarning(fileSizeMB)}</p>
               </div>
             )}
+            {compressing && (
+              <div className="mb-3">
+                <div className="flex justify-between text-white/60 text-xs mb-1">
+                  <span>กำลังบีบอัดวิดีโอ...</span>
+                  <span>{compressProgress}%</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-1.5">
+                  <div
+                    className="bg-amber-400 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${compressProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             {uploading && (
               <div className="mb-3">
                 <div className="flex justify-between text-white/60 text-xs mb-1">
@@ -326,10 +364,10 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={uploading}
+                disabled={uploading || compressing}
                 className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-70"
               >
-                {uploading ? `${uploadProgress}%` : t.usePhoto}
+                {compressing ? `บีบอัด ${compressProgress}%` : uploading ? `${uploadProgress}%` : t.usePhoto}
               </button>
             </div>
           </div>
