@@ -4,6 +4,11 @@ export const translations = {
     appName: 'รับสินค้า',
     appSubtitle: 'ระบบบันทึกภาพสินค้า',
 
+    // Access denied
+    accessDeniedTitle: 'ไม่มีสิทธิ์เข้าถึงระบบ',
+    accessDeniedMessage: 'บัญชีของคุณยังไม่ได้รับการกำหนดสิทธิ์\nโปรดติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์การเข้าถึง',
+    accessDeniedLogout: 'ออกจากระบบ',
+
     // Login
     email: 'อีเมล',
     password: 'รหัสผ่าน',
@@ -171,6 +176,11 @@ export const translations = {
     // App
     appName: 'Goods Receipt',
     appSubtitle: 'Product Photo Logger',
+
+    // Access denied
+    accessDeniedTitle: 'Access Denied',
+    accessDeniedMessage: 'Your account has not been assigned a role.\nPlease contact the administrator to request access.',
+    accessDeniedLogout: 'Sign Out',
 
     // Login
     email: 'Email',

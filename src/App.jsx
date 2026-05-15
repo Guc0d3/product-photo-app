@@ -30,6 +30,33 @@ function LoadingScreen() {
   )
 }
 
+const VALID_ROLES = ['staff', 'admin', 'qc', 'audit']
+
+function AccessDeniedScreen({ onLogout }) {
+  const { t } = useLang()
+  return (
+    <div className="h-[100dvh] flex items-center justify-center bg-[#F5F7FA] px-6">
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-5">
+          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#EF4444" strokeWidth="1.6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">{t.accessDeniedTitle}</h2>
+        <p className="text-sm text-gray-500 leading-relaxed whitespace-pre-line mb-7">
+          {t.accessDeniedMessage}
+        </p>
+        <button
+          onClick={onLogout}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-2xl text-sm transition-colors active:scale-95"
+        >
+          {t.accessDeniedLogout}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function EmptyDetailPanel() {
   const { t } = useLang()
   return (
@@ -72,6 +99,11 @@ export default function App() {
         </div>
       </div>
     )
+  }
+
+  // ── Logged in but no valid role ────────────────────────────────────────────
+  if (!VALID_ROLES.includes(user.role)) {
+    return <AccessDeniedScreen onLogout={handleLogout} />
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
