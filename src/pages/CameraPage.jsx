@@ -12,10 +12,12 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
   const [previewUrl,   setPreviewUrl]   = useState(null)
   const [flash,        setFlash]        = useState(false)
   const [facingMode,   setFacingMode]   = useState('environment')
-  const [uploading,    setUploading]    = useState(false)
-  const [uploadError,  setUploadError]  = useState(null)
+  const [uploading,      setUploading]      = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadError,    setUploadError]    = useState(null)
 
-  const fileInputRef = useRef(null)
+  const fileInputRef      = useRef(null)
+  const videoInputRef     = useRef(null)
 
   const { videoRef, error, ready, handleVideoReady, capture } = useCamera(facingMode)
 
@@ -40,6 +42,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     setCapturedFile(null)
     setPreviewUrl(null)
     setUploadError(null)
+    setUploadProgress(0)
     setPhase('viewfinder')
   }
 
@@ -59,15 +62,17 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
     if (!capturedFile || !queue?.id || uploading) return
     setUploading(true)
     setUploadError(null)
+    setUploadProgress(0)
     try {
       const mediaType = capturedFile.type?.startsWith('video') ? 'video' : 'image'
-      const { url, storagePath } = await uploadMedia(capturedFile)
+      const { url, storagePath } = await uploadMedia(capturedFile, setUploadProgress)
       await addMedia(queue.id, { url, storagePath, type: mediaType, role: user?.role })
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       onPhotoTaken()
     } catch {
       setUploadError(t.uploadError)
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -179,16 +184,33 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
               <div className="w-14 h-14 bg-white rounded-full"/>
             </button>
 
-            {/* Spacer — same width as gallery button */}
-            <div className="w-14 h-14"/>
+            {/* Record video — invokes native camera in video mode on Android */}
+            <button
+              onClick={() => videoInputRef.current?.click()}
+              className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors"
+              aria-label="ถ่ายวิดีโอ"
+            >
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="1.6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+              </svg>
+            </button>
 
           </div>
 
-          {/* Hidden file input */}
+          {/* Hidden file inputs */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,video/*"
+            className="hidden"
+            onChange={handlePickFile}
+          />
+          {/* capture="camcorder" opens native camera in video mode on Android */}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            capture="camcorder"
             className="hidden"
             onChange={handlePickFile}
           />
@@ -230,7 +252,23 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
             {uploadError && (
               <p className="text-red-400 text-xs text-center mb-3">{uploadError}</p>
             )}
-            <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
+            {uploading && (
+              <div className="mb-3">
+                <div className="flex justify-between text-white/60 text-xs mb-1">
+                  <span>{t.uploading}</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-1.5">
+                  <div
+                    className="bg-[#06C755] h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {!uploading && (
+              <p className="text-white/60 text-xs text-center mb-4">{t.cameraHint}</p>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={handleRetake}
@@ -244,14 +282,7 @@ export default function CameraPage({ queue, user, onBack, onPhotoTaken }) {
                 disabled={uploading}
                 className="flex-1 bg-[#06C755] text-white rounded-xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-70"
               >
-                {uploading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="30 70"/>
-                    </svg>
-                    {t.uploading}
-                  </span>
-                ) : t.usePhoto}
+                {uploading ? `${uploadProgress}%` : t.usePhoto}
               </button>
             </div>
           </div>

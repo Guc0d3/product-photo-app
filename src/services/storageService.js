@@ -1,22 +1,40 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { storage } from '../firebase/firebase.js'
 
 /**
- * Upload a File/Blob to Firebase Storage.
+ * Upload a File/Blob to Firebase Storage with resumable upload.
  * Path: media/[YYYY-MM-DD]/[filename]
+ * @param {File} file
+ * @param {(pct: number) => void} [onProgress] - called with 0–100
  * Returns { url, storagePath }.
  */
-export async function uploadMedia(file) {
+export function uploadMedia(file, onProgress) {
   const ext      = file.name?.split('.').pop() || (file.type?.startsWith('video') ? 'mp4' : 'jpg')
   const filename = `${Date.now()}.${ext}`
-  const yyyyMmDd = new Date().toISOString().slice(0, 10)   // e.g. "2025-05-11"
+  const yyyyMmDd = new Date().toISOString().slice(0, 10)
   const path     = `media/${yyyyMmDd}/${filename}`
   const fileRef  = ref(storage, path)
 
-  await uploadBytes(fileRef, file)
-  const url = await getDownloadURL(fileRef)
+  return new Promise((resolve, reject) => {
+    const task = uploadBytesResumable(fileRef, file)
 
-  return { url, storagePath: path }
+    task.on(
+      'state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+        onProgress?.(pct)
+      },
+      reject,
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref)
+          resolve({ url, storagePath: path })
+        } catch (err) {
+          reject(err)
+        }
+      },
+    )
+  })
 }
 
 /**
