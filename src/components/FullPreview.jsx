@@ -8,9 +8,10 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
   const [index,         setIndex]         = useState(startIndex)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [zoomed,        setZoomed]        = useState(false)
+  const [rotation,      setRotation]      = useState(0)
   const touchStartX = useRef(null)
 
-  useEffect(() => { setZoomed(false) }, [index])
+  useEffect(() => { setZoomed(false); setRotation(0) }, [index])
 
   const current = items[index]
 
@@ -82,6 +83,17 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
               {isQcItem ? t.qcStatusLabel : t.editType}
             </button>
           )}
+          {current.type !== 'video' && (
+            <button
+              onClick={() => setRotation(r => (r + 90) % 360)}
+              className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center active:bg-white/20"
+              aria-label="หมุนรูป"
+            >
+              <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          )}
           {canDeleteCurrent && (
             <button onClick={() => setConfirmDelete(true)}
               className="w-9 h-9 bg-red-500/80 backdrop-blur-sm rounded-full flex items-center justify-center active:bg-red-600"
@@ -91,7 +103,7 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
               </svg>
             </button>
           )}
-          {!canTagCurrent && !canDeleteCurrent && <div className="w-16"/>}
+          {!canTagCurrent && current.type === 'video' && !canDeleteCurrent && <div className="w-16"/>}
         </div>
       </div>
 
@@ -138,9 +150,8 @@ export default function FullPreview({ items, startIndex, onClose, onTagPhoto, on
               src={current.url}
               alt={`media ${index + 1}`}
               onClick={() => setZoomed(z => !z)}
-              className={`max-w-full max-h-full object-contain select-none transition-transform duration-200 ${
-                zoomed ? 'scale-[2.5] cursor-zoom-out' : 'cursor-zoom-in'
-              }`}
+              style={{ transform: `rotate(${rotation}deg)${zoomed ? ' scale(2.5)' : ''}` }}
+              className="max-w-full max-h-full object-contain select-none transition-transform duration-200 cursor-zoom-in"
             />
           )}
         </div>
