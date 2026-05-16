@@ -6,7 +6,6 @@ import {
   deleteMedia,
   syncHasUntagged,
 } from '../services/mediaService.js'
-import { deleteStorageFile } from '../services/storageService.js'
 import { firstApproveQueue, closeQueue, cancelQueue, reopenQueue, subscribeQueue } from '../services/queueService.js'
 
 /**
@@ -59,19 +58,12 @@ export function useQueueDetail(queue, user) {
       const item = media.find(m => m.id === mediaId)
       if (!item) return false
 
-      // 1. Delete Firestore doc first → onSnapshot fires → UI updates immediately
-      await deleteMedia(queue.id, mediaId, item.type)
+      // 1. Delete Firestore doc + enqueue Storage deletion (handled by Cloud Function)
+      await deleteMedia(queue.id, mediaId, item.type, item.storagePath)
 
-      // Use current media ref to avoid stale snapshot
+      // 2. Sync hasUntagged flag
       const remaining = media.filter(m => m.id !== mediaId)
       await syncHasUntagged(queue.id, remaining)
-
-      // 2. Delete Storage file in background — CORS or network failures won't block UI
-      if (item.storagePath) {
-        deleteStorageFile(item.storagePath).catch(err =>
-          console.warn('Storage delete failed (non-blocking):', err)
-        )
-      }
       return true
     } catch (err) {
       setError(err.message)

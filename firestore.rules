@@ -107,5 +107,12 @@ service cloud.firestore {
     match /counters/{dateStr} {
       allow read, write: if isAuth();
     }
+
+    // ── storageDeleteQueue ────────────────────────────────────────────────────
+    // Client can only enqueue (create). Read/update/delete is Cloud Function only (Admin SDK).
+    match /storageDeleteQueue/{docId} {
+      allow create: if isAuth();
+      allow read, update, delete: if false;
+    }
   }
 }

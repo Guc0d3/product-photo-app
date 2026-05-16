@@ -156,6 +156,32 @@ export const translations = {
     selectQueueHint: 'เลือกใบรับสินค้า',
     selectQueueSubHint: 'เพื่อดูรูปภาพและวิดีโอ',
 
+    // User Management
+    userManageTitle: 'จัดการผู้ใช้',
+    userManageSubtitle: (n) => `${n} บัญชี`,
+    userManageRoleUpdated: 'อัปเดต role เรียบร้อย',
+    userManageError: 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ',
+    userManageUpdateError: 'อัปเดต role ไม่สำเร็จ',
+    userManageSelf: '(คุณ)',
+    userManageEmpty: 'ไม่พบผู้ใช้',
+    roleStaff: 'Staff',
+    roleQc: 'QC',
+    roleAudit: 'Audit',
+    roleAdmin: 'Admin',
+
+    // Create User
+    createUserTitle: 'เพิ่มผู้ใช้ใหม่',
+    createUserEmail: 'อีเมล',
+    createUserName: 'ชื่อ-นามสกุล',
+    createUserRole: 'สิทธิ์',
+    createUserSubmit: 'สร้างบัญชี',
+    createUserSuccess: 'สร้างบัญชีสำเร็จ ส่ง email ตั้งรหัสผ่านแล้ว',
+    createUserErrorExists: 'อีเมลนี้มีในระบบแล้ว',
+    createUserErrorGeneric: 'สร้างบัญชีไม่สำเร็จ',
+    resetPassword: 'รีเซตรหัสผ่าน',
+    resetPasswordSent: 'ส่ง email แล้ว',
+    resetPasswordError: 'ส่ง email ไม่สำเร็จ',
+
     // Export
     exportTitle: 'Export ข้อมูลสำหรับเทรน AI',
     exportSelectMonth: 'เลือกเดือน',
@@ -328,6 +354,32 @@ export const translations = {
     // Empty state
     selectQueueHint: 'Select a receipt',
     selectQueueSubHint: 'to view its photos and videos',
+
+    // User Management
+    userManageTitle: 'Manage Users',
+    userManageSubtitle: (n) => `${n} accounts`,
+    userManageRoleUpdated: 'Role updated',
+    userManageError: 'Failed to load users',
+    userManageUpdateError: 'Failed to update role',
+    userManageSelf: '(you)',
+    userManageEmpty: 'No users found',
+    roleStaff: 'Staff',
+    roleQc: 'QC',
+    roleAudit: 'Audit',
+    roleAdmin: 'Admin',
+
+    // Create User
+    createUserTitle: 'Add New User',
+    createUserEmail: 'Email',
+    createUserName: 'Full Name',
+    createUserRole: 'Role',
+    createUserSubmit: 'Create Account',
+    createUserSuccess: 'Account created. Password setup email sent.',
+    createUserErrorExists: 'This email is already in use',
+    createUserErrorGeneric: 'Failed to create account',
+    resetPassword: 'Reset Password',
+    resetPasswordSent: 'Email sent',
+    resetPasswordError: 'Failed to send email',
 
     // Export
     exportTitle: 'Export Data for AI Training',

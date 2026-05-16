@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import LoginPage from './pages/LoginPage.jsx'
 import QueueListPage from './pages/QueueListPage.jsx'
 import QueueDetailPage from './pages/QueueDetailPage.jsx'
-import CameraPage from './pages/CameraPage.jsx'
-import AdminExportPage from './pages/AdminExportPage.jsx'
+import LoadingSpinner from './components/LoadingSpinner.jsx'
 import { useLang } from './contexts/LangContext.jsx'
 import { useAuthContext } from './contexts/AuthContext.jsx'
 import { useAuth } from './hooks/useAuth.js'
+
+const CameraPage     = lazy(() => import('./pages/CameraPage.jsx'))
+const AdminExportPage = lazy(() => import('./pages/AdminExportPage.jsx'))
+const UserManagePage  = lazy(() => import('./pages/UserManagePage.jsx'))
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768)
@@ -78,6 +81,7 @@ export default function App() {
   const [selectedQueue, setSelectedQueue] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showUserManage, setShowUserManage] = useState(false)
   const [mobileScreen, setMobileScreen] = useState('queueList')
   const isDesktop = useIsDesktop()
 
@@ -135,22 +139,45 @@ export default function App() {
     setShowExport(false)
     if (!isDesktop) setMobileScreen('queueList')
   }
+  const handleOpenUserManage = () => {
+    if (isDesktop) setShowUserManage(true)
+    else setMobileScreen('userManage')
+  }
+  const handleBackFromUserManage = () => {
+    setShowUserManage(false)
+    if (!isDesktop) setMobileScreen('queueList')
+  }
+
+  const fallback = (
+    <div className="flex-1 flex items-center justify-center bg-[#F5F7FA]">
+      <LoadingSpinner className="w-7 h-7 text-[#06C755]" />
+    </div>
+  )
 
   // ── Mobile ─────────────────────────────────────────────────────────────────
   if (!isDesktop) {
     return (
       <div className="h-[100dvh] flex flex-col overflow-hidden relative">
         {mobileScreen === 'queueList' && (
-          <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} />
+          <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} onUserManage={handleOpenUserManage} />
         )}
         {mobileScreen === 'queueDetail' && (
           <QueueDetailPage queue={selectedQueue} user={user} onBack={handleBackFromDetail} onCamera={handleOpenCamera} />
         )}
         {mobileScreen === 'camera' && (
-          <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          <Suspense fallback={fallback}>
+            <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          </Suspense>
         )}
         {mobileScreen === 'export' && (
-          <AdminExportPage onBack={handleBackFromExport} />
+          <Suspense fallback={fallback}>
+            <AdminExportPage onBack={handleBackFromExport} />
+          </Suspense>
+        )}
+        {mobileScreen === 'userManage' && (
+          <Suspense fallback={fallback}>
+            <UserManagePage user={user} onBack={handleBackFromUserManage} />
+          </Suspense>
         )}
       </div>
     )
@@ -160,7 +187,7 @@ export default function App() {
   return (
     <div className="h-[100dvh] flex overflow-hidden bg-[#F5F7FA] relative">
       <div className="w-80 xl:w-96 flex-shrink-0 flex flex-col border-r border-gray-200 overflow-hidden bg-white">
-        <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} />
+        <QueueListPage user={user} onSelectQueue={handleSelectQueue} onLogout={handleLogout} onExport={handleOpenExport} onUserManage={handleOpenUserManage} />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         {selectedQueue
@@ -170,12 +197,23 @@ export default function App() {
       </div>
       {showCamera && (
         <div className="absolute inset-0 z-50 flex flex-col">
-          <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          <Suspense fallback={fallback}>
+            <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+          </Suspense>
         </div>
       )}
       {showExport && (
         <div className="absolute inset-0 z-50">
-          <AdminExportPage onBack={handleBackFromExport} />
+          <Suspense fallback={fallback}>
+            <AdminExportPage onBack={handleBackFromExport} />
+          </Suspense>
+        </div>
+      )}
+      {showUserManage && (
+        <div className="absolute inset-0 z-50 flex flex-col">
+          <Suspense fallback={fallback}>
+            <UserManagePage user={user} onBack={handleBackFromUserManage} />
+          </Suspense>
         </div>
       )}
     </div>

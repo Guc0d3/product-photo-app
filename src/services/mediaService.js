@@ -4,6 +4,18 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '../firebase/firebase.js'
 
+/**
+ * Enqueue a Storage file path for deletion by the Cloud Function.
+ * Client never deletes Storage directly — the scheduled function processes this queue.
+ */
+async function enqueueStorageDelete(storagePath) {
+  if (!storagePath) return
+  await addDoc(collection(db, 'storageDeleteQueue'), {
+    storagePath,
+    queuedAt: serverTimestamp(),
+  })
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function toMedia(snap) {
@@ -89,16 +101,18 @@ export async function updateQcStatus(queueId, mediaId, status) {
 }
 
 /**
- * Delete a media document and decrement the queue's count.
- * Storage file deletion is handled by the caller.
+ * Delete a media document, decrement the queue's count,
+ * and enqueue the Storage file for background deletion by the Cloud Function.
  */
-export async function deleteMedia(queueId, mediaId, type) {
+export async function deleteMedia(queueId, mediaId, type, storagePath) {
   await deleteDoc(doc(db, 'queues', queueId, 'media', mediaId))
   const countField = type === 'video' ? 'videoCount' : 'photoCount'
   await updateDoc(doc(db, 'queues', queueId), {
     [countField]: increment(-1),
     updatedAt:    serverTimestamp(),
   })
+  // Enqueue Storage deletion — processed by Cloud Function (never from client)
+  await enqueueStorageDelete(storagePath)
 }
 
 /**
