@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import QueueListPage from './pages/QueueListPage.jsx'
 import QueueDetailPage from './pages/QueueDetailPage.jsx'
 import LoadingSpinner from './components/LoadingSpinner.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { useLang } from './contexts/LangContext.jsx'
 import { useAuthContext } from './contexts/AuthContext.jsx'
 import { useAuth } from './hooks/useAuth.js'
@@ -165,19 +166,25 @@ export default function App() {
           <QueueDetailPage queue={selectedQueue} user={user} onBack={handleBackFromDetail} onCamera={handleOpenCamera} />
         )}
         {mobileScreen === 'camera' && (
-          <Suspense fallback={fallback}>
-            <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {mobileScreen === 'export' && (
-          <Suspense fallback={fallback}>
-            <AdminExportPage onBack={handleBackFromExport} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <AdminExportPage onBack={handleBackFromExport} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {mobileScreen === 'userManage' && (
-          <Suspense fallback={fallback}>
-            <UserManagePage user={user} onBack={handleBackFromUserManage} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <UserManagePage user={user} onBack={handleBackFromUserManage} />
+            </Suspense>
+          </ErrorBoundary>
         )}
       </div>
     )
@@ -197,23 +204,29 @@ export default function App() {
       </div>
       {showCamera && (
         <div className="absolute inset-0 z-50 flex flex-col">
-          <Suspense fallback={fallback}>
-            <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <CameraPage queue={selectedQueue} user={user} onBack={handleBackFromCamera} onPhotoTaken={handlePhotoTaken} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
       {showExport && (
         <div className="absolute inset-0 z-50">
-          <Suspense fallback={fallback}>
-            <AdminExportPage onBack={handleBackFromExport} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <AdminExportPage onBack={handleBackFromExport} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
       {showUserManage && (
         <div className="absolute inset-0 z-50 flex flex-col">
-          <Suspense fallback={fallback}>
-            <UserManagePage user={user} onBack={handleBackFromUserManage} />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={fallback}>
+              <UserManagePage user={user} onBack={handleBackFromUserManage} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
     </div>
