@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { logError } from '../services/errorLogService.js'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -8,6 +9,10 @@ export default class ErrorBoundary extends Component {
 
   static getDerivedStateFromError() {
     return { hasError: true }
+  }
+
+  componentDidCatch(error, info) {
+    logError(error, { type: 'react-error', componentStack: info.componentStack })
   }
 
   render() {

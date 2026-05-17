@@ -114,5 +114,12 @@ service cloud.firestore {
       allow create: if isAuth();
       allow read, update, delete: if false;
     }
+
+    // ── errorLogs ─────────────────────────────────────────────────────────────
+    // Client can only write (create). Read via Firebase Console only.
+    match /errorLogs/{logId} {
+      allow create: if isAuth();
+      allow read, update, delete: if false;
+    }
   }
 }
