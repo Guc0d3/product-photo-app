@@ -256,11 +256,18 @@ describe('/queues collection', () => {
       await assertSucceeds(updateDoc(doc(db, 'queues', 'q1'), { status: 'closed' }))
     })
 
-    test('same person cannot do both approvals (pending_close → closed blocked)', async () => {
+    test('same audit cannot do both approvals (pending_close → closed blocked)', async () => {
       await seedUser('auditor1', 'audit')
       await seedQueue('q1', { status: 'pending_close', firstApproval: { uid: 'auditor1' } })
       const db = authCtx('auditor1').firestore()
       await assertFails(updateDoc(doc(db, 'queues', 'q1'), { status: 'closed' }))
+    })
+
+    test('same admin can do both approvals alone (pending_close → closed)', async () => {
+      await seedUser('admin1', 'admin')
+      await seedQueue('q1', { status: 'pending_close', firstApproval: { uid: 'admin1' } })
+      const db = authCtx('admin1').firestore()
+      await assertSucceeds(updateDoc(doc(db, 'queues', 'q1'), { status: 'closed' }))
     })
 
     test('admin can reopen (closed → open)', async () => {
@@ -393,13 +400,63 @@ describe('/queues/{queueId}/media subcollection', () => {
       )
     })
 
-    test('audit can update any media (qcStatus)', async () => {
+    test('audit can update qcStatus to approved', async () => {
       await seedUser('auditor1', 'audit')
       await seedQueue('q1', { status: 'open' })
-      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp() })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
       const db = authCtx('auditor1').firestore()
       await assertSucceeds(
         updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { qcStatus: 'approved' })
+      )
+    })
+
+    test('audit can update qcStatus to rejected', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
+      const db = authCtx('auditor1').firestore()
+      await assertSucceeds(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { qcStatus: 'rejected' })
+      )
+    })
+
+    test('audit can update qcStatus to pending', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'approved' })
+      const db = authCtx('auditor1').firestore()
+      await assertSucceeds(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { qcStatus: 'pending' })
+      )
+    })
+
+    test('audit cannot set qcStatus to an invalid value', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
+      const db = authCtx('auditor1').firestore()
+      await assertFails(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { qcStatus: 'hacked' })
+      )
+    })
+
+    test('audit cannot update fields other than qcStatus', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
+      const db = authCtx('auditor1').firestore()
+      await assertFails(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { productType: 'hacked' })
+      )
+    })
+
+    test('audit cannot update qcStatus together with other fields', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
+      const db = authCtx('auditor1').firestore()
+      await assertFails(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { qcStatus: 'approved', productType: 'hacked' })
       )
     })
 
