@@ -76,11 +76,13 @@ service cloud.firestore {
         allow read: if isAuth();
         allow create: if isAuth();
 
-        // admin: edit all | audit: qcStatus only (valid values) | staff: edit own media taken today
+        // admin: edit all | audit: qcStatus (valid values) or productType | staff: edit own media taken today
         allow update: if isAdmin() ||
           (isAudit() &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcStatus']) &&
            request.resource.data.qcStatus in ['pending', 'approved', 'rejected']) ||
+          (isAudit() &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['productType'])) ||
           (isAuth() &&
            resource.data.takenBy == request.auth.uid &&
            isToday(resource.data.takenAt));

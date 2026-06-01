@@ -440,13 +440,23 @@ describe('/queues/{queueId}/media subcollection', () => {
       )
     })
 
-    test('audit cannot update fields other than qcStatus', async () => {
+    test('audit can update productType', async () => {
+      await seedUser('auditor1', 'audit')
+      await seedQueue('q1', { status: 'open' })
+      await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
+      const db = authCtx('auditor1').firestore()
+      await assertSucceeds(
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { productType: 'main' })
+      )
+    })
+
+    test('audit cannot update fields other than qcStatus or productType', async () => {
       await seedUser('auditor1', 'audit')
       await seedQueue('q1', { status: 'open' })
       await seedMedia('q1', 'm1', { takenBy: 'alice', takenAt: yesterdayTimestamp(), qcStatus: 'pending' })
       const db = authCtx('auditor1').firestore()
       await assertFails(
-        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { productType: 'hacked' })
+        updateDoc(doc(db, 'queues', 'q1', 'media', 'm1'), { takenBy: 'hacked' })
       )
     })
 

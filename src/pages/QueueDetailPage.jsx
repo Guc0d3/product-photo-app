@@ -41,7 +41,8 @@ export default function QueueDetailPage({ queue, user, onBack, onCamera }) {
   const canChangeQcStatus = isAdmin || isQcUser || user?.role === 'audit'
 
   const canEditProductType = (item) =>
-    !isCancelled && item.takenByRole !== 'qc' && item.type !== 'video' && (isAdmin || isToday(item.takenAt))
+    !isCancelled && item.takenByRole !== 'qc' && item.type !== 'video' &&
+    (isAdmin || user?.role === 'audit' || isToday(item.takenAt))
 
   const canEditQcStatus = (item) =>
     !isCancelled && item.takenByRole === 'qc' && canChangeQcStatus
